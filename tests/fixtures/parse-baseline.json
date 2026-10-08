@@ -1,0 +1,256 @@
+{
+  "version": "11.17.2",
+  "stage": "Historical development parse-only baseline; not native/viewer acceptance.",
+  "results": [
+    {
+      "id": "architecture",
+      "status": "parse-pass",
+      "detectedType": "architecture"
+    },
+    {
+      "id": "block",
+      "status": "parse-pass",
+      "detectedType": "block"
+    },
+    {
+      "id": "c4-context",
+      "status": "parse-pass",
+      "detectedType": "c4"
+    },
+    {
+      "id": "c4-container",
+      "status": "parse-pass",
+      "detectedType": "c4"
+    },
+    {
+      "id": "c4-component",
+      "status": "parse-pass",
+      "detectedType": "c4"
+    },
+    {
+      "id": "c4-dynamic",
+      "status": "parse-pass",
+      "detectedType": "c4"
+    },
+    {
+      "id": "c4-deployment",
+      "status": "parse-pass",
+      "detectedType": "c4"
+    },
+    {
+      "id": "class-v2",
+      "status": "parse-pass",
+      "detectedType": "classDiagram"
+    },
+    {
+      "id": "er",
+      "status": "parse-pass",
+      "detectedType": "er"
+    },
+    {
+      "id": "flowchart",
+      "status": "parse-pass",
+      "detectedType": "flowchart-v2"
+    },
+    {
+      "id": "gantt",
+      "status": "parse-pass",
+      "detectedType": "gantt"
+    },
+    {
+      "id": "git-graph",
+      "status": "parse-pass",
+      "detectedType": "gitGraph"
+    },
+    {
+      "id": "ishikawa",
+      "status": "parse-pass",
+      "detectedType": "ishikawa"
+    },
+    {
+      "id": "kanban",
+      "status": "parse-pass",
+      "detectedType": "kanban"
+    },
+    {
+      "id": "mindmap",
+      "status": "parse-pass",
+      "detectedType": "mindmap"
+    },
+    {
+      "id": "packet",
+      "status": "parse-pass",
+      "detectedType": "packet"
+    },
+    {
+      "id": "pie",
+      "status": "parse-pass",
+      "detectedType": "pie"
+    },
+    {
+      "id": "quadrant",
+      "status": "parse-pass",
+      "detectedType": "quadrantChart"
+    },
+    {
+      "id": "radar",
+      "status": "parse-pass",
+      "detectedType": "radar"
+    },
+    {
+      "id": "requirement",
+      "status": "parse-pass",
+      "detectedType": "requirement"
+    },
+    {
+      "id": "sankey",
+      "status": "parse-pass",
+      "detectedType": "sankey"
+    },
+    {
+      "id": "sequence",
+      "status": "parse-pass",
+      "detectedType": "sequence"
+    },
+    {
+      "id": "state-v2",
+      "status": "parse-pass",
+      "detectedType": "stateDiagram"
+    },
+    {
+      "id": "timeline",
+      "status": "parse-pass",
+      "detectedType": "timeline"
+    },
+    {
+      "id": "treemap",
+      "status": "parse-pass",
+      "detectedType": "treemap"
+    },
+    {
+      "id": "journey",
+      "status": "parse-pass",
+      "detectedType": "journey"
+    },
+    {
+      "id": "venn",
+      "status": "parse-pass",
+      "detectedType": "venn"
+    },
+    {
+      "id": "xy-chart",
+      "status": "parse-pass",
+      "detectedType": "xychart"
+    },
+    {
+      "id": "block-beta",
+      "status": "parse-pass",
+      "detectedType": "block"
+    },
+    {
+      "id": "class-legacy",
+      "status": "parse-pass",
+      "detectedType": "class"
+    },
+    {
+      "id": "flowchart-graph",
+      "status": "parse-pass",
+      "detectedType": "flowchart"
+    },
+    {
+      "id": "git-graph-colon",
+      "status": "parse-pass",
+      "detectedType": "gitGraph"
+    },
+    {
+      "id": "packet-beta",
+      "status": "parse-pass",
+      "detectedType": "packet"
+    },
+    {
+      "id": "sankey-beta",
+      "status": "parse-pass",
+      "detectedType": "sankey"
+    },
+    {
+      "id": "state-legacy",
+      "status": "parse-pass",
+      "detectedType": "state"
+    },
+    {
+      "id": "xy-chart-beta",
+      "status": "parse-pass",
+      "detectedType": "xychart"
+    },
+    {
+      "id": "flowchart-elk",
+      "status": "parse-pass",
+      "detectedType": "flowchart-elk"
+    },
+    {
+      "id": "info",
+      "status": "parse-pass",
+      "detectedType": "info"
+    },
+    {
+      "id": "unsupported-agentflow",
+      "status": "unsupported-type",
+      "detectedType": null
+    },
+    {
+      "id": "unsupported-cynefin",
+      "status": "recognition-only",
+      "detectedType": "cynefin"
+    },
+    {
+      "id": "unsupported-eventmodeling",
+      "status": "recognition-only",
+      "detectedType": "eventmodeling"
+    },
+    {
+      "id": "unsupported-railroad",
+      "status": "recognition-only",
+      "detectedType": "railroad"
+    },
+    {
+      "id": "unsupported-railroad-ebnf",
+      "status": "recognition-only",
+      "detectedType": "railroadEbnf"
+    },
+    {
+      "id": "unsupported-railroad-abnf",
+      "status": "recognition-only",
+      "detectedType": "railroadAbnf"
+    },
+    {
+      "id": "unsupported-railroad-peg",
+      "status": "recognition-only",
+      "detectedType": "railroadPeg"
+    },
+    {
+      "id": "unsupported-swimlane",
+      "status": "recognition-only",
+      "detectedType": "swimlane"
+    },
+    {
+      "id": "unsupported-treeview",
+      "status": "recognition-only",
+      "detectedType": "treeView"
+    },
+    {
+      "id": "unsupported-usecase",
+      "status": "unsupported-type",
+      "detectedType": null
+    },
+    {
+      "id": "unsupported-wardley",
+      "status": "recognition-only",
+      "detectedType": "wardley"
+    },
+    {
+      "id": "unsupported-zenuml",
+      "status": "unsupported-type",
+      "detectedType": null
+    }
+  ]
+}

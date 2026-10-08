@@ -1,0 +1,98 @@
+{
+  "renderer": "installed Obsidian Mermaid 11.13.0",
+  "registry": [
+    {
+      "id": "error"
+    },
+    {
+      "id": "---"
+    },
+    {
+      "id": "flowchart-elk"
+    },
+    {
+      "id": "mindmap"
+    },
+    {
+      "id": "architecture"
+    },
+    {
+      "id": "c4"
+    },
+    {
+      "id": "kanban"
+    },
+    {
+      "id": "classDiagram"
+    },
+    {
+      "id": "class"
+    },
+    {
+      "id": "er"
+    },
+    {
+      "id": "gantt"
+    },
+    {
+      "id": "info"
+    },
+    {
+      "id": "pie"
+    },
+    {
+      "id": "requirement"
+    },
+    {
+      "id": "sequence"
+    },
+    {
+      "id": "flowchart-v2"
+    },
+    {
+      "id": "flowchart"
+    },
+    {
+      "id": "timeline"
+    },
+    {
+      "id": "gitGraph"
+    },
+    {
+      "id": "stateDiagram"
+    },
+    {
+      "id": "state"
+    },
+    {
+      "id": "journey"
+    },
+    {
+      "id": "quadrantChart"
+    },
+    {
+      "id": "sankey"
+    },
+    {
+      "id": "packet"
+    },
+    {
+      "id": "xychart"
+    },
+    {
+      "id": "block"
+    },
+    {
+      "id": "radar"
+    },
+    {
+      "id": "ishikawa"
+    },
+    {
+      "id": "treemap"
+    },
+    {
+      "id": "venn"
+    }
+  ]
+}

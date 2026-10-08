@@ -1,0 +1,32 @@
+{
+  "name": "obsidian-mermaid-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Private native-SVG Mermaid viewport for Obsidian",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "demo": "node scripts/serve.mjs",
+    "test:browser": "playwright test",
+    "check": "npm run typecheck && npm test && npm run test:taxonomy && npm run build && npm run test:browser",
+    "test:taxonomy": "node scripts/check-taxonomy.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "24.10.1",
+    "esbuild": "0.25.12",
+    "happy-dom": "20.14.5",
+    "mermaid": "11.17.2",
+    "obsidian": "1.13.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "@codemirror/state": "6.5.0",
+    "@codemirror/view": "6.38.6"
+  },
+  "overrides": {
+    "moment": "2.31.0",
+    "katex": "0.18.2"
+  }
+}

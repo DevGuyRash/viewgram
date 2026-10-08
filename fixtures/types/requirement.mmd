@@ -1,0 +1,11 @@
+requirementDiagram
+  requirement native_scale {
+    id: V1
+    text: Native scale remains stable
+    risk: low
+    verifymethod: test
+  }
+  element viewport {
+    type: component
+  }
+  viewport - satisfies -> native_scale

@@ -1,0 +1,4 @@
+graph TD
+  received["Sample received"] --> checked{"Source valid?"}
+  checked -->|Yes| shown["Show diagram"]
+  checked -->|No| report["Show error"]

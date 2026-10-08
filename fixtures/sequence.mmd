@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant A as Client
+  participant B as Queue
+  participant C as Worker
+  participant D as Storage
+  A->>B: Submit example job
+  B->>C: Deliver job
+  loop Three sample steps
+    C->>D: Read input
+    D-->>C: Return data
+    C->>D: Save output
+  end
+  C-->>A: Report completion

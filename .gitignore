@@ -1,0 +1,15 @@
+node_modules/
+dist/
+release/
+evidence/
+reference/
+test-results/
+playwright-report/
+demo/viewer.js
+demo/standalone.html
+demo/mermaid.js
+SHA256SUMS
+TEST-CANDIDATE.json
+.env
+.env.*
+!.env.example
