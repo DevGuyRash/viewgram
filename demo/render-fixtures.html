@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="UTF-8"></head><body><script type="module">
+import mermaid from '/node_modules/mermaid/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad:false,securityLevel:'strict',theme:'base',themeVariables:{fontFamily:'system-ui',primaryColor:'#e6ddfa',primaryTextColor:'#292339',primaryBorderColor:'#9a80bd',lineColor:'#8094b0',secondaryColor:'#dae8f0',tertiaryColor:'#f4e5cb',actorBkg:'#e6ddfa',actorTextColor:'#292339',actorBorder:'#9a80bd',signalColor:'#8094b0',signalTextColor:'#93a6c1',labelBoxBkgColor:'#dae8f0',labelTextColor:'#292339',loopTextColor:'#93a6c1'}});
+window.renderFixture=async(name,source)=>(await mermaid.render('fixture_'+name.replaceAll('-','_'),source)).svg;
+</script></body></html>

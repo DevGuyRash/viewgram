@@ -1,0 +1,79 @@
+/* Component-owned styles. No vault module changes, workspace overflow, or :has selectors. */
+.kmv-viewer {
+  --kmv-bg: var(--background-primary, #171b24);
+  --kmv-raised: var(--background-secondary, #202631);
+  --kmv-border: var(--background-modifier-border, #374153);
+  --kmv-text: var(--text-normal, #e9edf5);
+  --kmv-muted: var(--text-muted, #a4b0c2);
+  --kmv-accent: var(--interactive-accent, #bba0fa);
+  display: flex; flex-direction: column; width: 100%; max-width: 100%; min-width: 0;
+  color: var(--kmv-text); background: var(--kmv-bg); border: 1px solid var(--kmv-border);
+  border-radius: 12px; margin: 12px 0; box-sizing: border-box; text-align: left;
+  font-family: var(--font-interface, system-ui, sans-serif); line-height: 1.4;
+}
+/* Only clipping needs to outrank Kingdom ui-misc's broad overflow rule.
+   Keep geometry and touch behavior lower-specificity so modal/manual states can override. */
+.kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { overflow: hidden !important; }
+.kmv-viewer .kmv-viewport {
+  position: relative; height: clamp(220px, 42vh, 380px); min-height: 150px; width: 100%;
+  flex: 1 0 auto; outline-offset: -3px;
+  border-radius: 11px 11px 0 0; box-sizing: border-box; touch-action: pan-y pinch-zoom;
+  background-image: radial-gradient(var(--kmv-border) .6px, transparent .6px); background-size: 18px 18px;
+}
+.kmv-viewer .kmv-viewport .kmv-surface { position: absolute; top: 0; left: 0; display: block; width: max-content; height: max-content; margin: 0; padding: 0; border: 0; min-width: 0; min-height: 0; max-width: none; max-height: none; transform-origin: 0 0; user-select: none; }
+.kmv-viewer .kmv-surface > svg { margin: 0 !important; }
+.kmv-viewer.kmv-can-pan .kmv-viewport { cursor: grab; }
+.kmv-viewer.kmv-dragging .kmv-viewport { cursor: grabbing; }
+.kmv-viewer.kmv-touch-drag .kmv-viewport { touch-action: none; }
+.kmv-viewer .kmv-surface a { cursor: pointer; }
+.kmv-viewer .kmv-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 14px; border-top: 1px solid var(--kmv-border); box-sizing: border-box; }
+.kmv-viewer .kmv-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-bottom: 1px; }
+.kmv-viewer .kmv-status { color: var(--kmv-text); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kmv-viewer .kmv-hint { font-size: 11px; color: var(--kmv-muted); }
+.kmv-viewer .kmv-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.kmv-viewer .kmv-button, .kmv-dialog .kmv-button {
+  appearance: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  min-width: 32px; height: 32px; margin: 0; padding: 0 10px; border-radius: 7px;
+  background: var(--background-secondary, #202631); color: var(--text-normal, #e9edf5);
+  border: 1px solid var(--background-modifier-border, #374153); box-shadow: none;
+  font-family: var(--font-interface, system-ui, sans-serif); font-size: 12px; line-height: 1;
+}
+.kmv-viewer .kmv-button:hover, .kmv-dialog .kmv-button:hover { background: var(--background-modifier-hover, #30394a); }
+.kmv-viewer .kmv-button:disabled { opacity: .4; cursor: default; }
+.kmv-viewer .kmv-button:focus-visible, .kmv-viewer .kmv-zoom-input:focus-visible, .kmv-viewer .kmv-viewport:focus-visible, .kmv-dialog .kmv-close:focus-visible { outline: 2px solid var(--interactive-accent, #bba0fa); outline-offset: 2px; }
+.kmv-viewer .kmv-dock { display: flex; flex-direction: column; gap: 8px; flex: 0 0 112px; align-items: center; }
+.kmv-viewer .kmv-zoom-row { display: grid; grid-template-columns: 28px 56px 28px; align-items: center; }
+.kmv-viewer .kmv-zoom-row .kmv-button { min-width: 28px; padding: 0; font-size: 20px; }
+.kmv-viewer .kmv-zoom-input { width: 56px; min-width: 0; padding: 0 1px; height: 30px; border: 0; border-radius: 4px; text-align: center; background: transparent; color: var(--kmv-text); font-size: 11px; font-variant-numeric: tabular-nums; box-shadow: none; }
+.kmv-viewer .kmv-dpad { display: grid; grid-template-columns: repeat(3, 28px); grid-template-rows: repeat(3, 25px); gap: 2px; }
+.kmv-viewer .kmv-dpad .kmv-button { min-width: 28px; width: 28px; height: 25px; padding: 0; font-size: 15px; border-radius: 5px; }
+.kmv-viewer .kmv-up { grid-area: 1 / 2; }
+.kmv-viewer .kmv-left { grid-area: 2 / 1; }
+.kmv-viewer .kmv-center { grid-area: 2 / 2; color: var(--kmv-accent); }
+.kmv-viewer .kmv-right { grid-area: 2 / 3; }
+.kmv-viewer .kmv-down { grid-area: 3 / 2; }
+.kmv-dialog { width: min(1200px, 94vw); height: 92vh; max-width: 94vw; max-height: 92vh; padding: 0; border: 1px solid var(--background-modifier-border, #374153); border-radius: 16px; color: var(--text-normal, #e9edf5); background: var(--background-primary, #171b24); box-shadow: 0 24px 100px #0008; }
+.kmv-dialog[open] { display: flex; flex-direction: column; }
+.kmv-dialog::backdrop { background: #090c14c4; }
+.kmv-dialog .kmv-dialog-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; flex: 0 0 auto; }
+.kmv-dialog .kmv-dialog-header h2 { margin: 0; padding: 0; font: 600 16px var(--font-interface, system-ui, sans-serif); }
+.kmv-dialog .kmv-dialog-subtitle { flex: 1; color: var(--text-muted, #a4b0c2); font: 12px var(--font-interface, system-ui, sans-serif); }
+.kmv-dialog .kmv-viewer { flex: 1; min-height: 0; margin: 0; border: 0; border-top: 1px solid var(--background-modifier-border, #374153); border-radius: 0; }
+.kmv-dialog .kmv-viewer .kmv-viewport { flex: 1 1 auto; min-height: 0; height: 0; border-radius: 0; }
+.kmv-dialog .kmv-footer { flex: 0 0 auto; }
+@media (max-width: 420px) {
+  .kmv-viewer .kmv-footer { padding: 9px; gap: 8px; }
+  .kmv-viewer .kmv-hint { display: none; }
+  .kmv-viewer .kmv-actions { max-width: 160px; }
+  .kmv-dialog .kmv-dialog-subtitle { display: none; }
+  .kmv-dialog .kmv-dialog-header { justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kmv-viewer, .kmv-viewer *, .kmv-dialog { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media print {
+  .kmv-viewer .kmv-footer { display: none; }
+  .kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { height: auto; overflow: visible !important; }
+  .kmv-viewer .kmv-viewport .kmv-surface { position: static; width: auto; height: auto; transform: none !important; }
+  .kmv-viewer .kmv-surface > svg { max-width: 100% !important; height: auto !important; }
+}

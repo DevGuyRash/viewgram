@@ -1,0 +1,6 @@
+C4Container
+  Person(reviewer, "Reviewer")
+  Container(app, "Viewer", "Obsidian", "Shows diagrams")
+  ContainerDb(store, "Notes", "Markdown", "Keeps source")
+  Rel(reviewer, app, "Views")
+  Rel(app, store, "Reads")

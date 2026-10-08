@@ -1,0 +1,7 @@
+sequenceDiagram
+  actor Reviewer
+  participant Viewport
+  participant Diagram
+  Reviewer->>Viewport: Open
+  Viewport->>Diagram: Fit whole diagram
+  Diagram-->>Reviewer: Show content

@@ -1,0 +1,108 @@
+// Mermaid is a development-only fixture generator, never part of dist/main.js.
+import mermaid from 'mermaid';
+import wide from '../fixtures/wide-flowchart.mmd';
+import tall from '../fixtures/tall-flowchart.mmd';
+import branching from '../fixtures/branching-flowchart.mmd';
+import sequence from '../fixtures/sequence.mmd';
+import { RenderScope } from '../src/viewer/render-scope';
+import { DiagramViewer } from '../src/viewer/diagram';
+import { waitForViewportReady } from '../src/viewer/readiness';
+
+const scopes: RenderScope[] = [];
+const sources: Record<string, string> = {};
+const names = ['wide-flowchart', 'tall-flowchart', 'branching-flowchart', 'sequence'];
+const fixtureText: Record<string,string> = { 'wide-flowchart': wide, 'tall-flowchart': tall, 'branching-flowchart': branching, sequence };
+mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', themeVariables: { fontFamily: 'system-ui', primaryColor: '#e6ddfa', primaryTextColor: '#292339', primaryBorderColor: '#9a80bd', lineColor: '#8094b0', secondaryColor: '#dae8f0', tertiaryColor: '#f4e5cb', actorBkg: '#e6ddfa', actorTextColor: '#292339', actorBorder: '#9a80bd', signalColor: '#8094b0', signalTextColor: '#93a6c1' } });
+for (const name of names) {
+  const source = fixtureText[name]!;
+  sources[name] = (await mermaid.render(`fixture_${name.replaceAll('-', '_')}`, source)).svg;
+}
+function mount(name: string, target: HTMLElement): RenderScope {
+  const container = document.createElement('div'); container.className = 'mermaid';
+  // Only locally generated, synthetic test fixtures. Production never parses SVG strings.
+  container.append(document.importNode(new DOMParser().parseFromString(sources[name]!, 'image/svg+xml').documentElement, true));
+  target.append(container);
+  const scope = new RenderScope(container, (href) => { document.querySelector('#link-status')!.textContent = `Opened ${href}`; });
+  scopes.push(scope); return scope;
+}
+for (const name of names) mount(name, document.querySelector(`[data-fixture="${name}"]`)!);
+const hidden = document.querySelector<HTMLElement>('#hidden-content')!;
+sources.hidden = (await mermaid.render('fixture_hidden', branching)).svg;
+mount('hidden', hidden);
+document.querySelector('#show-hidden')!.addEventListener('click', () => { hidden.hidden = !hidden.hidden; });
+document.querySelector('#toggle-theme')!.addEventListener('click', () => document.body.classList.toggle('theme-light'));
+sources.dynamic = (await mermaid.render('fixture_dynamic', sequence)).svg;
+let dynamicScope: RenderScope | undefined;
+const dynamic = document.querySelector<HTMLElement>('#dynamic')!;
+document.querySelector('#mount')!.addEventListener('click', () => { if (!dynamicScope) dynamicScope = mount('dynamic', dynamic); });
+document.querySelector('#unmount')!.addEventListener('click', () => { dynamicScope?.dispose(); dynamicScope = undefined; dynamic.replaceChildren(); });
+Object.assign(window, {
+  demo: {
+    scopes, sources, mount, DiagramViewer, RenderScope,
+    disposeAll: () => scopes.forEach(scope => scope.dispose()),
+    ready: true,
+  },
+});
+document.documentElement.dataset.ready = 'true';
+
+// Explicit taxonomy workbench. It is idle until requested and never changes a vault.
+import { taxonomy, developmentMermaidVersion } from './taxonomy-data';
+const taxonomySelect = document.querySelector<HTMLSelectElement>('#taxonomy-select')!;
+const taxonomyPreview = document.querySelector<HTMLElement>('#taxonomy-preview')!;
+const taxonomyStatus = document.querySelector<HTMLElement>('#taxonomy-status')!;
+document.querySelector('#taxonomy-version')!.textContent = `Development renderer: Mermaid ${developmentMermaidVersion}. Native target: Obsidian ${taxonomy.nativeRenderer.obsidian_version}, Mermaid 11.13.0 (patched).`;
+for (const item of taxonomy.fixtures) {
+ const option=document.createElement('option');option.value=item.id;option.textContent=`${item.id} · ${item.nativeRecognition === 'unsupported' ? 'unsupported by native renderer' : item.scope}`;taxonomySelect.append(option);
+}
+type TypeResult = { id: string; recognition: string; parse: string; svg: string; viewer: string; message?: string; textPreserved?: boolean; nativeRecognition: string; scale?: number };
+let taxonomyScope: RenderScope | undefined;
+let originalSvg: SVGSVGElement | undefined;
+let originalText='';
+let renderCount=0;
+let taxonomyBusy=false;
+const typeResults: TypeResult[]=[];
+async function showOriginal(id: string): Promise<TypeResult> {
+ const fixture=taxonomy.fixtures.find(x=>x.id===id)!;
+ taxonomyScope?.dispose();taxonomyScope=undefined;taxonomyPreview.replaceChildren();originalSvg=undefined;
+ const result: TypeResult={id,recognition:'not-tested',parse:'not-tested',svg:'not-tested',viewer:'not-tested',nativeRecognition:fixture.nativeRecognition};
+ try { result.recognition=mermaid.detectType(fixture.sourceText); }
+ catch(error){result.recognition='unsupported';result.message=String(error);return result;}
+ if(fixture.scope==='recognition-only'){result.message='Native renderer does not recognize this family. This is a starter-only probe, not a full source/render case.';return result;}
+ try{await mermaid.parse(fixture.sourceText);result.parse='pass';}
+ catch(error){result.parse='fail';result.message=String(error);return result;}
+ try{
+  const rendered=await mermaid.render(`taxonomy_${++renderCount}_${id.replaceAll('-','_')}`,fixture.sourceText);
+  const parsed=new DOMParser().parseFromString(rendered.svg,'image/svg+xml').documentElement;
+  const host=document.createElement('div');host.className='mermaid';host.append(document.importNode(parsed,true));taxonomyPreview.append(host);
+  originalSvg=host.querySelector('svg')!;originalText=originalSvg.textContent||'';result.svg='pass';
+ }catch(error){result.svg='fail';result.message=String(error);}
+ return result;
+}
+async function attachTypeViewer(result: TypeResult): Promise<TypeResult> {
+ if(!originalSvg || result.svg!=='pass')return result;
+ const host=taxonomyPreview.querySelector<HTMLElement>('.mermaid')!;
+ taxonomyScope=new RenderScope(host);
+ const root=host.querySelector<HTMLElement>('.kmv-viewer');
+ if(!root){result.viewer='fail';result.message='Native SVG has no usable dimensions or was not wrapped.';return result;}
+ try { await waitForViewportReady(root); }
+ catch(error) { result.viewer='fail';result.message=String(error);return result; }
+ const rect=originalSvg.getBoundingClientRect(),vp=root.querySelector('.kmv-viewport')!.getBoundingClientRect();
+ result.textPreserved=originalSvg.textContent===originalText;
+ result.scale=Number(root.dataset.scale);
+ result.viewer=result.textPreserved && rect.width<=vp.width-31 && rect.width>0 ? 'pass' : 'fail';
+ return result;
+}
+async function runTypeCase(id: string): Promise<TypeResult> {
+ if(taxonomyBusy)throw new Error('A type case is already running.');
+ taxonomyBusy=true;
+ try { const result=await attachTypeViewer(await showOriginal(id));taxonomyStatus.textContent=JSON.stringify(result,null,2);return result; }
+ finally{taxonomyBusy=false;}
+}
+let selectedResult: TypeResult | undefined;
+document.querySelector('#taxonomy-original')!.addEventListener('click',async()=>{if(taxonomyBusy)return;taxonomyBusy=true;try{selectedResult=await showOriginal(taxonomySelect.value);taxonomyStatus.textContent=JSON.stringify(selectedResult,null,2);}finally{taxonomyBusy=false;}});
+document.querySelector('#taxonomy-attach')!.addEventListener('click',async()=>{if(taxonomyBusy||!selectedResult)return;taxonomyBusy=true;try{selectedResult=await attachTypeViewer(selectedResult);taxonomyStatus.textContent=JSON.stringify(selectedResult,null,2);}finally{taxonomyBusy=false;}});
+document.querySelector('#taxonomy-run')!.addEventListener('click',async()=>{
+ if(taxonomyBusy)return;typeResults.length=0;selectedResult=undefined;
+ for(const fixture of taxonomy.fixtures){const result=await runTypeCase(fixture.id);typeResults.push(result);taxonomyStatus.textContent=typeResults.map(x=>`${x.id}: recognition=${x.recognition}, parse=${x.parse}, SVG=${x.svg}, viewer=${x.viewer}`).join('\n');}
+});
+Object.assign((window as any).demo,{taxonomy,runTypeCase,typeResults,showOriginal,attachTypeViewer});

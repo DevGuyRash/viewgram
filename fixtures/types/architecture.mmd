@@ -1,0 +1,5 @@
+architecture-beta
+  group review(cloud)[Review system]
+  service ingest(server)[Ingest] in review
+  service store(database)[Store] in review
+  ingest:R --> L:store
