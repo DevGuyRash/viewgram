@@ -26,11 +26,11 @@ test('rendered flowchart, class, ER, state, sequence and chart hover keep native
     ['er', 'node', 'NOTE'], ['state-v2', 'node', 'Inline'], ['sequence', 'participant', 'Viewport'],
   ]) {
     const root = await renderedType(page, id!);
-    const before = await root.locator('svg').textContent();
+    const before = await root.locator('.kmv-surface > svg').textContent();
     const target = root.locator(`[data-kmv-kind="${kind}"]`).filter({ hasText: text! }).first();
     await expect(target).toBeVisible(); await target.hover();
     await expect(target).toHaveClass(/kmv-semantic-active/);
-    await writeFile(`evidence/hover-${id}-metadata.json`, JSON.stringify(await root.locator('svg').evaluate(svg => ({ nodes: [...svg.querySelectorAll('[data-kmv-kind="node"], [data-kmv-kind="participant"]')].map(el => ({id:el.id,label:el.textContent,attributes:[...el.attributes].map(attr=>[attr.name,attr.value])})), edges: [...svg.querySelectorAll('[data-kmv-kind="edge"]')].map(el=>({id:el.id,attributes:[...el.attributes].map(attr=>[attr.name,attr.value])})) })), null, 2));
+    await writeFile(`evidence/hover-${id}-metadata.json`, JSON.stringify(await root.locator('.kmv-surface > svg').evaluate(svg => ({ nodes: [...svg.querySelectorAll('[data-kmv-kind="node"], [data-kmv-kind="participant"]')].map(el => ({id:el.id,label:el.textContent,attributes:[...el.attributes].map(attr=>[attr.name,attr.value])})), edges: [...svg.querySelectorAll('[data-kmv-kind="edge"]')].map(el=>({id:el.id,attributes:[...el.attributes].map(attr=>[attr.name,attr.value])})) })), null, 2));
     if (id === 'state-v2') {
       // This renderer exposes edge0..3 and markers, with no endpoint IDs.
       // The viewer must emphasize the hovered node without inventing adjacency.
@@ -45,12 +45,12 @@ test('rendered flowchart, class, ER, state, sequence and chart hover keep native
       await expect(root.locator('[data-kmv-kind="edge"].kmv-semantic-outgoing')).not.toHaveCount(0);
       if (['flowchart', 'sequence'].includes(id!)) await expect(root.locator('[data-kmv-kind="edge"].kmv-semantic-incoming')).not.toHaveCount(0);
     }
-    expect(await root.locator('svg').textContent()).toBe(before);
+    expect(await root.locator('.kmv-surface > svg').textContent()).toBe(before);
     receipt[id!] = await relations(root);
     await page.screenshot({ path: `evidence/hover-${id}.png` });
   }
   const pie = await renderedType(page, 'pie');
-  await writeFile('evidence/pie-native-fill-metadata.json', JSON.stringify(await pie.locator('svg').evaluate(svg => ({ slices: [...svg.querySelectorAll('.pieCircle')].map(el => ({ attributes: [...el.attributes].map(attr => [attr.name, attr.value]), raw: el.getAttribute('fill'), inline: (el as SVGElement).style.fill, computed: getComputedStyle(el).fill })), legends: [...svg.querySelectorAll('g.legend')].map(el => { const rect = el.querySelector('rect')!; return { label: el.textContent, attributes: [...rect.attributes].map(attr => [attr.name, attr.value]), raw: rect.getAttribute('fill'), inline: (rect as SVGElement).style.fill, computed: getComputedStyle(rect).fill }; }) })), null, 2));
+  await writeFile('evidence/pie-native-fill-metadata.json', JSON.stringify(await pie.locator('.kmv-surface > svg').evaluate(svg => ({ slices: [...svg.querySelectorAll('.pieCircle')].map(el => ({ attributes: [...el.attributes].map(attr => [attr.name, attr.value]), raw: el.getAttribute('fill'), inline: (el as SVGElement).style.fill, computed: getComputedStyle(el).fill })), legends: [...svg.querySelectorAll('g.legend')].map(el => { const rect = el.querySelector('rect')!; return { label: el.textContent, attributes: [...rect.attributes].map(attr => [attr.name, attr.value]), raw: rect.getAttribute('fill'), inline: (rect as SVGElement).style.fill, computed: getComputedStyle(rect).fill }; }) })), null, 2));
   const legend = pie.locator('[data-kmv-kind="slice"]').filter({ hasText: 'Flow' }).first();
   await expect(legend).toBeVisible(); await legend.hover(); await expect(legend).toHaveClass(/kmv-semantic-active/);
   await expect(pie.locator('.pieCircle.kmv-semantic-active')).toHaveCount(1);

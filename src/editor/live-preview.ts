@@ -8,7 +8,7 @@ export function livePreviewExtension(owner: EditorScopeOwner) {
   return ViewPlugin.fromClass(class {
     private readonly scope: LivePreviewScope;
     constructor(private readonly view: EditorView) {
-      this.scope = new LivePreviewScope(view.contentDOM, owner, svg => editorSource(view, svg));
+      this.scope = new LivePreviewScope(view.contentDOM, owner, svg => editorSource(view, svg, () => owner.isActive()));
       this.sync();
     }
     update(_update: ViewUpdate): void { this.sync(); }

@@ -8,7 +8,30 @@ The later source-only transfer contains exactly published commit `119b659a509733
 
 The locally imported upgrade is Library file `libfile_df27ed60a8e08191b1b411e3b3d69480`, version 2, archive `mermaid-viewer-upgrade-checkpoint-20261013.zip`, SHA-256 `0cb22a02b61fce17c31441b8c6a62929368ec50405d64c9bbf06e8b7e53025c9`. Its recorded cloud checkpoint is `b98f520edb8e635741f3ed3c1b9527d4f36d3193`; the patch applied cleanly to the exact published baseline.
 
-The reconciled branch uses the original remote history. Signed import checkpoint `07449d34f8471c3a3434e4b704b84fe6457a1000` preserves v2, followed by focused source-target, gesture and semantic corrections through runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. Historical cloud recovery commits identify checkpoints rather than the original remote history. Source merge can retain the disclosed unrun native verification limits; native scratch qualification remains mandatory before real-vault installation.
+The reconciled branch uses the original remote history. Signed import checkpoint `07449d34f8471c3a3434e4b704b84fe6457a1000` preserves v2, followed by focused source-target, gesture and semantic corrections through runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. Historical cloud recovery commits identify checkpoints rather than the original remote history. Later editor/control corrections are described below; the historical commits and artifact hashes do not identify that newer runtime.
+
+## Current editor and control corrections
+
+Save now belongs to an open source session independently of the SVG that originally opened it. Native render replacement retires that viewer without destroying its existing draft. Validation failure and asynchronous write failure retain the exact draft, show which stage failed, and restore editing for correction or retry. Checking and saving messages use neutral status styling; only an error receives error styling. A successful write closes the session, while plugin unload closes all sessions and prevents a save that is still awaiting validation from proceeding.
+
+Reading view obtains native section metadata immediately before locating the block. Its issued snapshot retains the captured file identity and full document text; the atomic vault callback rechecks the active plugin, file identity/path and unchanged note before replacing only that block. Live Preview uses its owning CodeMirror document and file identity, preserving unsaved text and the note's undo history. Neither bridge depends on a replaced SVG when completing an already-open draft. Stale notes, changed files, unavailable or ambiguous positions, unissued snapshots and fence-breaking edits fail without selecting another block.
+
+The source input uses the host CodeMirror packages, left-aligned monospace text, line wrapping and standard history commands. Enter preserves existing indentation and adds two spaces after supported block openers; Tab and Shift-Tab indent or outdent the selected lines. The dialog has one theme-owned surface and a scrolling body, with Cancel and Save outside that scrolling area. Its width, height and position follow visual-viewport resize/scroll events, and it requests measurement and visibility of the focused selection after resizing.
+
+Viewer controls follow their parent width through a container query, so a narrow split pane can compact its controls even on a wide desktop. The five pan actions remain available in a single wrapping row. The resize minimum follows the actual pane budget, allowing useful dragging below 150 pixels in a short pane; a manually preferred height is restored after a temporary shrink. Touch targets, dynamic viewport units and bounded scrolling menus support smaller visible areas. Component-specific overflow rules preserve viewport clipping and menu/status scrolling under broad host styles, without changing native SVG presentation.
+
+Source/export actions have small theme-colored icons. Confirmed success briefly replaces the action/summary icon with a check while an accessible live status announces the result. Each instance restores its original icon; latest-action tokens prevent older completions from replacing newer feedback. Warning, error and fallback messages stay visible, and a notice alone cannot trigger success styling.
+
+The current whole build and TypeScript check passed. The complete Node run passed 115 checks without failures or skips; the development taxonomy passed 38 parser cases, with recognition-only cases reported separately. The focused source-save browser cases passed 6/6 and the focused resize/control cases passed 5/5, followed by the complete browser run passing all 47 cases in 1.5 minutes without failures or skips. All four separate visual capture cases passed. The earlier counts and hashes below are historical.
+
+| Current local artifact | SHA-256 |
+| --- | --- |
+| `dist/main.js` | `15ce1b08e1ee21102cb015801dbb8a29072f7f39e8240223255f9ac3f358b38c` |
+| `dist/styles.css` | `8f1527810e2816d2307db786c6f5ba86b3fe149a6f68da69228d2a7c24db7353` |
+| `dist/manifest.json` | `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c` |
+| `demo/standalone.html` | `f4d7c3398b13f1a63c0859dfb7a2cea27643a5c0250f6b35237e74580e6b4d41` |
+
+Native Obsidian qualification remains unrun. A prior namespaced build was installed at the owner's explicit request; that installation does not establish native QA or qualify this newer revision.
 
 ## Historical artifact identity before the namespace change
 
@@ -21,17 +44,17 @@ This historical local build used plugin ID `mermaid-viewer` and runtime commit `
 | `dist/manifest.json` | `e56c023dc84f7a422f8ff1124987348634e7f7940219ce4fa28fdba156fc023e` |
 | `demo/standalone.html` | `ee66478dc827f65e4cae804bbe7dd9f74ea848904b34fa83bdd80a4f239f63e3` |
 
-## Namespaced identity and staging checks
+## Historical namespaced identity and staging checks
 
-The plugin ID changed from `mermaid-viewer` to `devguyrash-mermaid-viewer` while retaining display name Mermaid Viewer, author DevGuyRash and version 0.1.0. The current `dist/manifest.json` SHA-256 is `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c`. Runtime JavaScript, CSS and the standalone demo remain byte-identical to the historical hashes above, retaining the prior browser evidence.
+The namespace-only checkpoint changed the plugin ID from `mermaid-viewer` to `devguyrash-mermaid-viewer` while retaining display name Mermaid Viewer, author DevGuyRash and version 0.1.0. Its `dist/manifest.json` SHA-256 was `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c`. At that checkpoint only, runtime JavaScript, CSS and the standalone demo were byte-identical to the historical hashes above. The later editor/control correction changes those runtime artifacts.
 
-After the identity and scratch guard changes, `npm run build`, `npm run typecheck` and `npm test` passed (99 tests). Five focused CLI groups use owned synthetic `/tmp` fixtures: stage only the new-ID artifacts without enablement or migration; refuse stale built ID/name/author/version; refuse unsafe IDs; preserve sentinel data when existing or nested vault targets are refused; and reject symlink aliases into a vault, including paths with missing intermediate parents. Every refusal occurs before target creation.
+After the identity and scratch guard changes, `npm run build`, `npm run typecheck` and `npm test` passed (99 tests). Five focused CLI groups used owned synthetic temporary fixtures: stage only the new-ID artifacts without enablement or migration; refuse stale built ID/name/author/version; refuse unsafe IDs; preserve sentinel data when existing or nested vault targets are refused; and reject symlink aliases into a vault, including paths with missing intermediate parents. Every refusal occurred before target creation.
 
-A separate smoke staged the actual repository build and synthetic acceptance fixtures into a new owned `/tmp` directory. The three staged artifact hashes matched the current build, only `devguyrash-mermaid-viewer` existed under the plugin directory, and no old-ID folder, `data.json` or enabled-plugin list was created. All owned test and smoke directories were removed. No real or prior scratch vault was modified; native scratch qualification remains unrun.
+A separate smoke staged that repository build and synthetic acceptance fixtures into a new owned temporary directory. The three staged artifact hashes matched that build, only `devguyrash-mermaid-viewer` existed under the plugin directory, and no old-ID folder, `data.json` or enabled-plugin list was created. All owned test and smoke directories were removed. Those historical staging checks did not modify a real or prior scratch vault; the later explicitly requested installation is recorded separately above.
 
-## Focused checks
+## Historical focused checks
 
-Local validation on 2026-10-13 passed `npm run build`, `npm run typecheck`, `npm test` (94 tests), and `npm run test:taxonomy` (38 development parser cases, with recognition-only cases reported separately).
+Before the namespace and later editor/control corrections, local validation on 2026-10-13 passed `npm run build`, `npm run typecheck`, `npm test` (94 tests), and `npm run test:taxonomy` (38 development parser cases, with recognition-only cases reported separately).
 
 - TypeScript typecheck and both plugin/demo builds
 - Existing viewport ownership, independent modal state, cleanup, theme preservation and Live Preview lifecycle emulation
@@ -44,9 +67,9 @@ Local validation on 2026-10-13 passed `npm run build`, `npm run typecheck`, `npm
 
 These use the existing Node test runner and Happy DOM. Canvas/clipboard doubles verify contracts, not real pixels or OS clipboard behavior. A separate temporary public-API probe passed four Reading-view bridge cases: a retained SVG moving from line 4 to 8 during an awaited read, a concurrent document change, a detached SVG and a section spanning multiple blocks. The probe used explicit Obsidian context/vault doubles; it does not prove native atomic processing. No new test framework was added.
 
-## Local browser evidence
+## Historical local browser evidence
 
-The browser harness used Playwright 1.56.1, Chromium 153.0.8010.12 and development Mermaid 11.17.2. The full suite exercised 36 cases: 35 passed and one exposed the native pie hex/RGB color mismatch. After that scoped correction, both affected semantic cases passed with no failures, skips or flaky results. The other 35 passing cases were retained; a second complete 36-case run is not claimed.
+The earlier browser harness used Playwright 1.56.1, Chromium 153.0.8010.12 and development Mermaid 11.17.2. The full suite exercised 36 cases: 35 passed and one exposed the native pie hex/RGB color mismatch. After that scoped correction, both affected semantic cases passed with no failures, skips or flaky results. The other 35 passing cases were retained; a second complete 36-case run at that checkpoint is not claimed. These results precede the current editor/control correction.
 
 The checked-in cases under `tests/browser/` cover natural height, keyboard and actual pointer resizing, parent-only pane height changes, presets, real wheel/modifier input, middle dragging from a native SVG link, semantic hover, escaped label editing and invalid-source refusal. Actual dragging grew a viewport from 185 to 385 pixels; shrinking only its pane from 1000 to 550 pixels kept the viewer within the 88% cap plus a three-pixel measurement allowance.
 
@@ -65,12 +88,20 @@ npm run typecheck
 
 Generated local evidence is kept outside tracked source: `evidence/browser-results-full-36.json`, `evidence/browser-results-focused-2.json` and `evidence/browser-results-semantic-final.json` preserve the full, targeted and final affected reports. Screenshots, `evidence/semantic-hover-receipt.json`, `evidence/sequence-open-cross-receipt.json`, and `evidence/exports/` contain hover and decoded image receipts. Browser tests can be repeated using an installed Chromium as described in the README.
 
-## Native Obsidian acceptance still required
+## Current browser and visual check scope
 
-The earlier cloud Chromium attempt failed at socket creation with `Operation not permitted`. Local Chromium validation above resolves that browser limitation. Native Obsidian UI control was unavailable in the local session, so its scratch vault and the real vault remain unchanged. Development Mermaid 11.17.2 is not evidence for Obsidian’s installed Mermaid 11.13 renderer. Verify the built revision in an isolated Obsidian scratch vault before installing into a real vault:
+Current browser validation used Playwright 1.56.1 and Chromium 153.0.8010.12. The complete current report is `evidence/browser-results-editor-controls-47.json`; generated evidence remains outside tracked source. The focused source-save browser cases exercise actual CodeMirror input and real SVG DOM replacement with explicit synthetic note/validation/write operations. They cover parser rejection after replacement, asynchronous write failure and retry, repeated open/cancel cleanup, unload while validation is pending, smart indentation and standard undo/redo, and a narrow editor whose available height contracts while the last caret remains visible. These operations do not prove native vault processing.
 
-1. Reading and Live Preview: double-click a flowchart label containing quotes, brackets, Unicode and markup-like text; save, inspect actual note bytes, verify native rerender and Live Preview undo. Repeat with sequence, class, state, ER and chart elements using full-source editing. Invalid source must leave the note unchanged. A simultaneous edit must refuse stale writes.
-2. Verify pane-relative natural height, bottom-right dragging, keyboard resize, zoom presets and ordinary/modifier wheel behavior; include narrow panes and parent-only vertical resizing.
+The focused control cases exercise real mouse and Chromium touch input in a short narrow parent, keyboard reset, restoration of manual height after parent shrink/expansion, keyboard access through a bounded scrolling presets menu, transient confirmed feedback, and persistent denied-copy fallback. Separate light/dark captures verify 16-pixel icons, left-aligned editor text and matching input/dialog backgrounds. In a 300 × 260 synthetic pane, a real drag changed chart height from 72 to 52 pixels, with the complete viewer remaining below the 88% pane cap. The opened menu stayed within the parent and visible viewport and retained scrolling.
+
+A separate simulated visual-viewport-only keyboard contraction kept the layout viewport at 390 × 844 while reducing the visible band to 300 pixels with a 300-pixel vertical offset. The editor occupied vertical coordinates 316–584 and its action buttons 535–571, inside that visible band. This verifies the viewport-event layout path; it is not evidence for a real mobile keyboard or an Obsidian mobile host.
+
+## Native Obsidian acceptance remains unrun
+
+The earlier cloud Chromium attempt failed at socket creation with `Operation not permitted`. Local Chromium validation resolves that browser limitation. Native Obsidian UI control was unavailable, so no native acceptance run is claimed. A prior namespaced build was installed by explicit user request despite this qualification gap. Development Mermaid 11.17.2 does not establish compatibility with Obsidian’s installed Mermaid 11.13 renderer. An isolated Obsidian scratch vault remains the recommended setting for the following qualification:
+
+1. Reading and Live Preview: double-click a flowchart label containing quotes, brackets, Unicode and markup-like text; save, inspect actual note bytes, verify native rerender and Live Preview undo. Repeat with sequence, class, state, ER and chart elements using full-source editing. Replace a render while validation or writing is pending; rejection must keep the exact draft editable, and a corrected retry must update only its intended block. Invalid source must leave the note unchanged. A simultaneous note edit or changed file identity must refuse stale writes.
+2. Verify pane-relative natural height, bottom-right dragging, keyboard resize, zoom presets and ordinary/modifier wheel behavior; include short narrow panes, parent-only vertical resizing and restoration of a preferred manual height. Check touch input and real mobile keyboard contraction, including the focused caret, action buttons and keyboard access to scrolling menus.
 3. Hover nodes and edges in both views. Check direction and native line/cardinality treatment. Where SVG metadata is absent or ambiguous, expect local/group emphasis rather than invented connections.
 4. Save SVG/PNG/JPG/WebP with HTML labels and native light/dark filters. Check full native dimensions, clipping, colors and readable labels. Test clipboard allowed, unavailable and denied; a failed copy must never show success.
 5. Close/cancel repeatedly, rerender or switch files during an edit, disable the plugin with dialogs open, and verify no orphan dialogs or restored obsolete SVGs.
