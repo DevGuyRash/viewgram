@@ -111,3 +111,56 @@ test('pie legends require a unique displayed color before grouping with slices',
   const {svg,get,hover}=setup('<path class="pieCircle" id="slice-one" style="fill:rgb(230, 221, 250)"/><path class="pieCircle" id="slice-two" style="fill:rgb(230, 221, 250)"/><path class="pieCircle" id="slice-three" style="fill:rgb(218, 232, 240)"/><g class="legend" id="repeated"><rect style="fill:rgb(230, 221, 250)"/><text>Repeated</text></g><g class="legend" id="unique"><rect style="fill:rgb(218, 232, 240)"/><text>Unique</text></g>','pie');
   const h=new SemanticHighlighter(svg);hover('repeated');assert.equal(svg.querySelectorAll('.pieCircle.kmv-semantic-active').length,0);hover('unique');assert.ok(get('slice-three').classList.contains('kmv-semantic-active'));assert.equal(svg.querySelectorAll('.pieCircle.kmv-semantic-active').length,1);h.dispose();
 });
+
+test('disabling hover leaves semantic editing available and hit settings restore owned native style', () => {
+  const { window, svg, get } = setup(graph);
+  svg.setAttribute('style', '--kmv-semantic-hit-stroke-width:7px !important;fill:navy');
+  get('flowchart-A-0').setAttribute('class', 'node  native-spacing');
+  const original = svg.outerHTML, edits: SemanticTarget[] = [];
+  const highlighter = new SemanticHighlighter(svg, target => edits.push(target), { enabled: false, lineHitWidth: 18 });
+  const edge = get('L_A_B_0'), proxy = edge.previousElementSibling!;
+  assert.ok(proxy.hasAttribute('data-kmv-hit-target'));
+  proxy.dispatchEvent(new window.PointerEvent('pointerover', { bubbles: true }) as unknown as Event);
+  assert.equal(svg.querySelectorAll('.kmv-semantic-active').length, 0);
+  proxy.dispatchEvent(new window.MouseEvent('dblclick', { bubbles: true, cancelable: true }) as unknown as Event);
+  assert.deepEqual(edits, [{ id: 'L_A_B_0', label: 'go', kind: 'edge' }]);
+  highlighter.setEnabled(true);
+  proxy.dispatchEvent(new window.PointerEvent('pointerover', { bubbles: true }) as unknown as Event);
+  assert.ok(edge.classList.contains('kmv-semantic-active'));
+  highlighter.setLineHitWidth(20); highlighter.setViewportScale(.25);
+  assert.equal(svg.style.getPropertyValue('--kmv-semantic-hit-stroke-width'), '80px');
+  highlighter.setViewportScale(Number.NaN);
+  assert.equal(svg.style.getPropertyValue('--kmv-semantic-hit-stroke-width'), '80px');
+  highlighter.setEnabled(false);
+  assert.equal(svg.querySelectorAll('.kmv-semantic-active, .kmv-semantic-related, .kmv-semantic-dim').length, 0);
+  highlighter.dispose();
+  assert.equal(svg.outerHTML, original);
+  assert.equal(svg.style.getPropertyPriority('--kmv-semantic-hit-stroke-width'), 'important');
+});
+
+test('disposing hit settings retains native root style changes made by another owner', () => {
+  const { svg } = setup(graph);
+  svg.setAttribute('style', 'opacity:.8');
+  const highlighter = new SemanticHighlighter(svg);
+  svg.style.setProperty('fill', 'red');
+  highlighter.setViewportScale(.5); highlighter.setLineHitWidth(24);
+  highlighter.dispose();
+  assert.equal(Number(svg.style.opacity), .8);
+  assert.equal(svg.style.fill, 'red');
+  assert.equal(svg.style.getPropertyValue('--kmv-semantic-hit-stroke-width'), '');
+});
+
+test('a later ambiguous source snapshot releases its inferred sequence associations', () => {
+  const { svg, get, hover } = setup('<g><line class="actor-line" name="A" id="life-a"/></g><g><rect class="actor actor-top" name="A"/><text class="actor">A</text></g><g><line class="actor-line" name="B" id="life-b"/></g><g><rect class="actor actor-top" name="B"/><text class="actor">B</text></g><text class="messageText">Ping</text><line id="opaque-message" class="messageLine0" marker-end="url(#arrowhead)"/><g id="native-note"><rect class="note"/><text class="noteText">Remember</text></g>', 'sequence');
+  const original = svg.outerHTML, highlighter = new SemanticHighlighter(svg);
+  highlighter.setSource('sequenceDiagram\n participant A\n participant B\n A->>B: Ping\n Note over A: Remember');
+  hover('life-a');
+  assert.equal(get('opaque-message').getAttribute('data-kmv-relation'), 'outgoing');
+  assert.ok(get('native-note').classList.contains('kmv-semantic-related'));
+  highlighter.setSource('sequenceDiagram\n participant A\n participant B\n A->>B: Ping\n B->>A: Ping\n Note over A: Remember\n Note over B: Remember');
+  hover('life-a');
+  assert.ok(get('opaque-message').classList.contains('kmv-semantic-dim'));
+  assert.ok(get('native-note').classList.contains('kmv-semantic-dim'));
+  assert.equal(get('opaque-message').getAttribute('data-kmv-relation'), null);
+  highlighter.dispose(); assert.equal(svg.outerHTML, original);
+});

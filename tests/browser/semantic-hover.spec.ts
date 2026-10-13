@@ -63,7 +63,7 @@ test('rendered flowchart, class, ER, state, sequence and chart hover keep native
 
 test('rendered sequence open and cross arrowheads keep their incoming and outgoing direction', async ({ page }) => {
   const root = await renderedType(page, 'sequence');
-  await root.locator('summary').click(); await root.getByRole('button', { name: 'Edit Mermaid source', exact: true }).click();
+  await root.getByRole('button', { name: 'Edit whole chart', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Edit Mermaid source' });
   await editor.getByRole('textbox', { name: 'Mermaid source', exact: true }).fill('sequenceDiagram\n participant A\n participant B\n A-)B: Open head\n B--xA: Cross head');
   await editor.getByRole('button', { name: 'Save source', exact: true }).click(); await expect(editor).toHaveCount(0);

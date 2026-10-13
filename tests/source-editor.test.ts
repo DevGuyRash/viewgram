@@ -77,16 +77,16 @@ test('native RenderScope replacement retains the open session until save, then u
   const sessions = new SourceEditorSessions(); let resolve!: () => void, writes = 0;
   const source: DiagramSource = { read: async () => ({ source: initial, document: initial, start: 0, end: initial.length, line: 0 }), validate: () => new Promise<void>(done => { resolve = done; }), write: async () => { writes++; } };
   const scope = new RenderScope(host as unknown as HTMLElement, undefined, () => source, sessions);
-  (host.querySelector('[aria-label="Edit Mermaid source"]')! as unknown as HTMLButtonElement).click(); await settle(); button('Save source').click();
+  (host.querySelector('[aria-label="Edit whole chart"]')! as unknown as HTMLButtonElement).click(); await settle(); button('Save source').click();
   host.replaceChildren(svg()); await settle(); assert.equal(scope.count, 1); assert.ok(win.document.querySelector('dialog')); resolve(); await settle(); assert.equal(writes, 1); assert.equal(win.document.querySelector('dialog'), null); assert.equal(sessions.count, 1);
-  (host.querySelector('[aria-label="Edit Mermaid source"]')! as unknown as HTMLButtonElement).click(); await settle(); button('Save source').click();
+  (host.querySelector('[aria-label="Edit whole chart"]')! as unknown as HTMLButtonElement).click(); await settle(); button('Save source').click();
   sessions.dispose(); scope.dispose(); resolve(); await settle(); assert.equal(writes, 1); assert.equal(sessions.count, 0); assert.equal(win.document.querySelector('dialog'), null); assert.equal(scope.count, 0);
 });
 
-test('CRLF fallback target selection uses normalized editor offsets', async () => {
+test('unmapped node is read only and explicit whole-chart selection uses normalized CRLF editor offsets', async () => {
   const text = 'pie\r\n "First" : 1\r\n "Second" : 2\r\n';
   const editor = new SourceEditor(win.document as unknown as Document, { read: async () => ({ source: text, document: text, start: 0, end: text.length, line: 0 }), write: async () => {} });
-  await editor.open({ id: '', label: 'Second', kind: 'slice' }); const view = code(); assert.equal(view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to), 'Second'); editor.dispose();
+  await editor.open({ id: '', label: 'Second', kind: 'slice' }); assert.equal(win.document.querySelector('.cm-content'), null); assert.equal((win.document.querySelector('[aria-label="Element label"]')! as unknown as HTMLTextAreaElement).readOnly, true); button('Edit whole chart').click(); const view = code(); assert.equal(view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to), 'Second'); editor.dispose();
 });
 
 test('source keyboard preserves indentation, indents Mermaid blocks, and uses standard undo/redo', () => {
@@ -98,4 +98,31 @@ test('source keyboard preserves indentation, indents Mermaid blocks, and uses st
   input.value = 'flowchart LR\nloop[Node]'; input.focus(input.value.length, input.value.length); key('Enter'); assert.equal(input.value, 'flowchart LR\nloop[Node]\n');
   input.value = 'sequenceDiagram\n  alt case'; input.focus(input.value.length, input.value.length); key('Enter'); assert.equal(input.value, 'sequenceDiagram\n  alt case\n    ');
   input.value = 'A\nB\n'; input.focus(0, input.value.length); key('Tab'); assert.equal(input.value, '  A\n  B\n'); key('Tab', { shiftKey: true }); assert.equal(input.value, 'A\nB\n'); input.dispose();
+});
+
+test('node-only editor mirrors a shared relationship label and saves one checked span without mounting full source', async () => {
+  const text = 'flowchart LR\n A["Old"] & B -->|Shared| C\n'; let saved = '', validated = '';
+  const editor = new SourceEditor(win.document as unknown as Document, {
+    read: async () => ({ source: text, document: text, start: 0, end: text.length, line: 0 }),
+    validate: async next => { validated = next; }, write: async (_snapshot, next) => { saved = next; },
+  });
+  await editor.open({ id: 'C', label: 'C', kind: 'node' });
+  assert.equal(win.document.querySelector('.cm-content'), null);
+  const label = win.document.querySelector('[aria-label="Element label"]')! as unknown as HTMLTextAreaElement;
+  const relationships = [...win.document.querySelectorAll('.kmv-relationship-label')] as unknown as HTMLTextAreaElement[];
+  assert.equal(relationships.length, 2); label.value = 'Target'; label.dispatchEvent(new win.Event('input') as unknown as Event);
+  relationships[0]!.value = 'Shared new'; relationships[0]!.dispatchEvent(new win.Event('input') as unknown as Event);
+  assert.equal(relationships[1]!.value, 'Shared new'); button('Save source').click(); await settle();
+  assert.equal(saved, 'flowchart LR\n A["Old"] & B -->|"Shared new"| C["Target"]\n'); assert.equal(validated, saved);
+  assert.equal(win.document.querySelector('dialog'), null); editor.dispose();
+});
+
+test('wrapping reconfiguration preserves the source document and does not report a text edit', () => {
+  const parent = win.document.createElement('div'); win.document.body.append(parent); let edits = 0;
+  const source = 'flowchart LR\n A["It\'s fine"] --> B\n';
+  const editor = new SourceCodeEditor(parent as unknown as HTMLElement, source, () => { edits++; });
+  assert.equal(editor.wrapping, true); editor.setWrap(false); assert.equal(editor.wrapping, false);
+  assert.equal(editor.view.contentDOM.classList.contains('cm-lineWrapping'), false); assert.equal(editor.value, source);
+  editor.setWrap(true); assert.equal(editor.view.contentDOM.classList.contains('cm-lineWrapping'), true); assert.equal(editor.value, source); assert.equal(edits, 0);
+  editor.dispose();
 });
