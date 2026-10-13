@@ -1,6 +1,8 @@
 import { Compartment, EditorState } from '@codemirror/state';
-import { EditorView, keymap, type Command } from '@codemirror/view';
+import { EditorView, keymap, lineNumbers, type Command } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { mermaidLanguage } from './mermaid-language';
 
 const indent = '  ';
 
@@ -8,6 +10,8 @@ const indent = '  ';
 export class SourceCodeEditor {
   readonly view: EditorView;
   private readonly editable = new Compartment();
+  private readonly wrap = new Compartment();
+  private wrapEnabled = true;
   private programmatic = false;
   constructor(parent: HTMLElement, source: string, changed: () => void) {
     this.view = new EditorView({ parent, root: parent.ownerDocument, state: EditorState.create({
@@ -16,7 +20,10 @@ export class SourceCodeEditor {
         this.editable.of([EditorState.readOnly.of(false), EditorView.editable.of(true)]),
         EditorView.contentAttributes.of({ role: 'textbox', 'aria-label': 'Mermaid source', 'aria-multiline': 'true', spellcheck: 'false' }),
         EditorState.tabSize.of(2),
-        EditorView.lineWrapping,
+        this.wrap.of(EditorView.lineWrapping),
+        lineNumbers(),
+        mermaidLanguage,
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         history(),
         keymap.of([
           { key: 'Enter', run: newline },
@@ -34,9 +41,17 @@ export class SourceCodeEditor {
   }
   get value(): string { return this.view.state.doc.toString(); }
   set value(text: string) {
+    if (text === this.value) return;
     this.programmatic = true;
     try { this.view.dispatch({ changes: { from: 0, to: this.view.state.doc.length, insert: text } }); }
     finally { this.programmatic = false; }
+  }
+  get wrapping(): boolean { return this.wrapEnabled; }
+  setWrap(enabled: boolean): void {
+    if (enabled === this.wrapEnabled) return;
+    this.wrapEnabled = enabled;
+    this.view.dispatch({ effects: this.wrap.reconfigure(enabled ? EditorView.lineWrapping : []) });
+    this.resize();
   }
   setEnabled(enabled: boolean): void {
     this.view.dispatch({ effects: this.editable.reconfigure([EditorState.readOnly.of(!enabled), EditorView.editable.of(enabled)]) });
