@@ -1,12 +1,13 @@
 import { DiagramViewer } from './diagram';
 import { nativeSize } from './math';
+import type { DiagramSource } from './source';
 
 /** One Obsidian render child, one small subtree. No whole-vault scan, timer, or render cache. */
 export class RenderScope {
   private readonly viewers = new Map<SVGSVGElement, DiagramViewer>();
   private observer: MutationObserver;
   private disposed = false;
-  constructor(readonly element: HTMLElement, private openLink?: (href: string, newLeaf: boolean) => void) {
+  constructor(readonly element: HTMLElement, private openLink?: (href: string, newLeaf: boolean) => void, private sourceFor?: (svg: SVGSVGElement) => DiagramSource) {
     this.observer = new MutationObserver(records => {
       if (this.disposed) return;
       for (const [svg, viewer] of this.viewers) {
@@ -27,7 +28,7 @@ export class RenderScope {
       const svg = candidate as SVGSVGElement;
       if (!this.element.contains(svg) || this.viewers.has(svg) || svg.closest('.kmv-viewer, .kmv-dialog') || !svg.closest('.mermaid, .block-language-mermaid') || !nativeSize(svg)) continue;
       // An enclosing render scope may already own this SVG. The wrapper above is its ownership marker.
-      const viewer = new DiagramViewer(svg, this.openLink);
+      const viewer = new DiagramViewer(svg, this.openLink, this.sourceFor?.(svg));
       this.viewers.set(svg, viewer);
     }
   }

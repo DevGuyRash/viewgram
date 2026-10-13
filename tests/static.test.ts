@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-test('plugin source does not render Mermaid, clone SVG, poll, or write notes/settings',()=>{
+test('viewport integration preserves native rendering and avoids polling or automatic settings writes',()=>{
  const source=['src/main.ts','src/viewer/controller.ts','src/viewer/diagram.ts','src/viewer/render-scope.ts'].map(p=>readFileSync(p,'utf8')).join('\n');
  for(const forbidden of ['cloneNode','innerHTML','DOMParser','setInterval','fetch(','loadMermaid','vault.modify','saveData','localStorage']) assert.ok(!source.includes(forbidden),forbidden);
 });

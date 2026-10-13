@@ -1,4 +1,5 @@
 import { ViewPlugin, type EditorView, type ViewUpdate } from '@codemirror/view';
+import { editorSource } from './source-bridge';
 import { editorInfoField, editorLivePreviewField } from 'obsidian';
 import { LivePreviewScope, type EditorScopeOwner } from './live-preview-scope';
 
@@ -7,7 +8,7 @@ export function livePreviewExtension(owner: EditorScopeOwner) {
   return ViewPlugin.fromClass(class {
     private readonly scope: LivePreviewScope;
     constructor(private readonly view: EditorView) {
-      this.scope = new LivePreviewScope(view.contentDOM, owner);
+      this.scope = new LivePreviewScope(view.contentDOM, owner, svg => editorSource(view, svg));
       this.sync();
     }
     update(_update: ViewUpdate): void { this.sync(); }
