@@ -176,3 +176,27 @@ test('light native SVG remains unfiltered in both viewer contexts',()=>{
  const style=window.document.createElement('style');style.textContent='.theme-dark .mermaid > svg { filter: invert(100%); }';window.document.head.append(style);window.document.body.classList.add('theme-light');
  const {svg}=svgHost();const native=window.getComputedStyle(svg as any).filter;const v=new DiagramViewer(svg);assert.equal(window.getComputedStyle(svg as any).filter,native);v.open();assert.equal(window.getComputedStyle(svg as any).filter,native);v.dispose();
 });
+
+test('ordinary wheel pans overflowing diagrams, modifiers zoom, and edges release note scrolling',()=>{
+ const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg),c=v.inline;c.setZoom(1);c.fit();
+ const before=c.state.y;const wheel=new window.WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true});c.viewport.dispatchEvent(wheel as any);assert.ok(c.state.y<before);assert.equal(wheel.defaultPrevented,true);
+ const scale=c.state.scale;const zoom=new window.WheelEvent('wheel',{deltaY:-100,bubbles:true,cancelable:true});Object.defineProperties(zoom,{ctrlKey:{value:true},clientX:{value:100},clientY:{value:100}});c.viewport.dispatchEvent(zoom as any);assert.ok(c.state.scale>scale);assert.equal(zoom.defaultPrevented,true);
+ c.setZoom(.01);const edge=new window.WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true});c.viewport.dispatchEvent(edge as any);assert.equal(edge.defaultPrevented,false);v.dispose();
+});
+test('zoom presets and middle-button drag keep the independent viewport controls functional',()=>{
+ const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg),c=v.inline;
+ (c.root.querySelector('[aria-label="Choose zoom preset"]') as HTMLButtonElement).click();assert.equal(c.root.querySelector<HTMLElement>('.kmv-zoom-menu')!.hidden,false);
+ (c.root.querySelector('[aria-label="Zoom to 150%"]') as HTMLButtonElement).click();assert.equal(c.state.scale,1.5);assert.equal(c.root.querySelector<HTMLElement>('.kmv-zoom-menu')!.hidden,true);
+ c.viewport.dispatchEvent(new window.PointerEvent('pointerdown',{pointerId:9,isPrimary:true,button:1,clientX:200,clientY:200,bubbles:true,cancelable:true}) as any);
+ c.viewport.dispatchEvent(new window.PointerEvent('pointermove',{pointerId:9,isPrimary:true,clientX:100,clientY:100,bubbles:true,cancelable:true}) as any);assert.ok(c.root.classList.contains('kmv-dragging'));
+ c.viewport.dispatchEvent(new window.PointerEvent('pointerup',{pointerId:9}) as any);assert.ok(!c.root.classList.contains('kmv-dragging'));v.dispose();
+});
+test('inline natural height respects viewport cap and resize handle restores automatic mode',()=>{
+ const {svg}=svgHost(600,250);const v=new DiagramViewer(svg),c=v.inline;
+ Object.defineProperty(c.viewport,'clientWidth',{get:()=>600});Object.defineProperty(c.viewport,'clientHeight',{get:()=>parseFloat(c.viewport.style.height)||300});
+ c.resize({width:600,height:300});const natural=parseFloat(c.viewport.style.height);assert.equal(natural,269);
+ const handle=c.root.querySelector('[aria-label="Resize diagram height"]')!;
+ handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}) as any);assert.equal(parseFloat(c.viewport.style.height),309);
+ handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}) as any);assert.equal(parseFloat(c.viewport.style.height),natural);
+ v.dispose();const tall=svgHost(600,9000);const t=new DiagramViewer(tall.svg);t.inline.resize({width:600,height:300});assert.ok(parseFloat(t.inline.viewport.style.height)<=window.innerHeight*.88);t.dispose();
+});

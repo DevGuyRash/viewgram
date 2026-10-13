@@ -1,4 +1,8 @@
-import { ViewportController } from './controller';
+import { ViewportController, type ViewerAction, type ViewerActionResult } from './controller';
+import { SemanticHighlighter } from './semantics';
+import { SourceEditor } from './source-editor';
+import type { DiagramSource } from './source';
+import { copyText, copyImage, exportDiagram, downloadFile, DiagramExportError, type DiagramFile, type CopyResult, type ExportFormat } from './export';
 import { Lifetime } from './lifetime';
 import { nativeSize } from './math';
 
@@ -8,15 +12,49 @@ export class DiagramViewer {
   readonly lifetime = new Lifetime();
   private closeModal: (() => void) | null = null;
   private readonly originalStyle: string | null;
-  constructor(readonly svg: SVGSVGElement, openLink?: (href: string, newLeaf: boolean) => void) {
+  private readonly semantics: SemanticHighlighter;
+  private readonly editor?: SourceEditor;
+  constructor(readonly svg: SVGSVGElement, openLink?: (href: string, newLeaf: boolean) => void, private readonly source?: DiagramSource) {
     const parent = svg.parentNode;
     const native = nativeSize(svg);
     if (!parent || !native) throw new Error('Cannot wrap an unmeasurable or detached SVG.');
     this.originalStyle = svg.getAttribute('style');
+    if (source) this.editor = new SourceEditor(svg.ownerDocument, source);
+    this.semantics = new SemanticHighlighter(svg, target => {
+      if (!this.editor) { this.inline.announce('Source is unavailable for this rendered diagram.'); return; }
+      void this.editor.open(target).catch(error => this.inline.announce(error instanceof Error ? error.message : String(error)));
+    });
+
     this.marker = svg.ownerDocument.createComment('mermaid-viewer: original position');
     parent.insertBefore(this.marker, svg);
-    this.inline = new ViewportController(svg, { mode: 'width', nativeMermaidParent: svg.parentElement?.classList.contains('mermaid') === true, open: () => this.open(), openLink }, native);
+    this.inline = new ViewportController(svg, { mode: 'width', nativeMermaidParent: svg.parentElement?.classList.contains('mermaid') === true, open: () => this.open(), openLink, actions: this.actions() }, native);
     this.marker.after(this.inline.root);
+  }
+  private fallback(file: DiagramFile): ViewerActionResult['fallback'] {
+    return { label: `Save ${file.filename}`, run: () => downloadFile(this.svg.ownerDocument, file.blob, file.filename) };
+  }
+  private copied(result: CopyResult): ViewerActionResult {
+    return { message: result.notice, fallback: result.copied ? undefined : this.fallback(result.fallback) };
+  }
+  private actions(): ViewerAction[] {
+    const actions: ViewerAction[] = [];
+    if (this.source && this.editor) {
+      actions.push({ text: 'Edit Mermaid source', label: 'Edit Mermaid source', run: () => this.editor!.open() });
+      actions.push({ text: 'Copy source', label: 'Copy Mermaid source', run: async () => this.copied(await copyText(this.svg.ownerDocument, (await this.source!.read()).source)) });
+    }
+    actions.push({ text: 'Copy image', label: 'Copy diagram image', run: async () => { this.semantics.clear(); return this.copied(await copyImage(this.svg)); } });
+    for (const format of ['svg', 'png', 'jpg', 'webp'] as ExportFormat[]) actions.push({ text: `Save ${format.toUpperCase()}`, label: `Save diagram as ${format.toUpperCase()}`, run: async () => {
+      this.semantics.clear();
+      try {
+        const file = await exportDiagram(this.svg, format);
+        downloadFile(this.svg.ownerDocument, file.blob, file.filename);
+        return { message: `Download requested: ${file.filename}.${file.notice ? ` ${file.notice}` : ''}` };
+      } catch (error) {
+        if (error instanceof DiagramExportError && error.fallback) return { message: error.message, fallback: this.fallback(error.fallback) };
+        throw error;
+      }
+    } });
+    return actions;
   }
   open(): void {
     if (this.lifetime.disposed || this.closeModal) return;
@@ -34,7 +72,7 @@ export class DiagramViewer {
     const life = new Lifetime();
     this.inline.suspend();
     // Move the original SVG, never clone or re-parse it: IDs and direct link listeners survive.
-    const modal = new ViewportController(this.svg, { mode: 'contain', nativeMermaidParent: this.inline.options.nativeMermaidParent, openLink: this.inline.options.openLink }, this.inline.native);
+    const modal = new ViewportController(this.svg, { mode: 'contain', nativeMermaidParent: this.inline.options.nativeMermaidParent, openLink: this.inline.options.openLink, actions: this.inline.options.actions }, this.inline.native);
     dialog.append(header, modal.root); doc.body.append(dialog);
     const finish = (): void => {
       if (!this.closeModal) return;
@@ -59,7 +97,7 @@ export class DiagramViewer {
   }
   dispose(): void {
     if (this.lifetime.disposed) return;
-    this.lifetime.dispose(); this.closeModal?.();
+    this.lifetime.dispose(); this.editor?.dispose(); this.semantics.dispose(); this.closeModal?.();
     if (this.originalStyle === null) this.svg.removeAttribute('style'); else this.svg.setAttribute('style', this.originalStyle);
     // Do not resurrect a removed/rerendered block.
     if (this.marker.parentNode && this.inline.root.parentNode === this.marker.parentNode) this.marker.replaceWith(this.svg);
