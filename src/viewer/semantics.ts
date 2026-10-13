@@ -193,7 +193,7 @@ export class SemanticHighlighter {
       for (const node of [from, to]) if (node) node.links.add(item);
       const classes = el.getAttribute('class') || '';
       const dash = attr(el, 'stroke-dasharray') || style?.getPropertyValue('stroke-dasharray');
-      const line = /dotted/.test(classes) ? 'dotted' : /dashed|messageLine1/.test(classes) || (dash && dash !== 'none' && dash !== '0') ? 'dashed' : /thick/.test(classes) ? 'thick' : 'solid';
+      const line = /dotted/.test(classes) ? 'dotted' : /dashed|messageLine1/.test(classes) || (dash && dash !== 'none' && dash !== '0') ? 'dashed' : /(?:^|\s)(?:thick|edge-thickness-thick)(?:\s|$)/.test(classes) ? 'thick' : 'solid';
       this.mark(el, 'data-kmv-line', line);
       if (start || end) this.mark(el, 'data-kmv-marker', `${start} ${end}`.trim());
       edgeItems.push(item);
