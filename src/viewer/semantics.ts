@@ -264,12 +264,21 @@ export class SemanticHighlighter {
     }
     if (/pie/.test(this.family)) {
       const slices = this.select('.pieCircle'), labels = this.select('text.slice'), legends = this.select('g.legend');
+      const fills = new Map<Element, string>();
+      const fillOf = (el: Element): string => {
+        let value = fills.get(el);
+        if (value === undefined) {
+          value = this.svg.ownerDocument.defaultView?.getComputedStyle(el).fill || attr(el, 'fill') || (el as SVGElement).style.fill;
+          fills.set(el, value);
+        }
+        return value;
+      };
       slices.forEach((slice, index) => {
-        const fill = attr(slice, 'fill') || (slice as SVGElement).style.fill;
-        const legend = legends.filter(el => { const box = el.querySelector('rect'); return box && (attr(box, 'fill') || (box as SVGElement).style.fill) === fill; });
+        const fill = fillOf(slice);
+        const legend = legends.filter(el => { const box = el.querySelector('rect'); return box && fillOf(box) === fill; });
         // Legend color is only an identity when unique; palette colors can repeat.
         const parts = [slice]; if (labels.length === slices.length && labels[index]) parts.push(labels[index]!);
-        const unique = legend.length === 1 && slices.filter(el => (attr(el, 'fill') || (el as SVGElement).style.fill) === fill).length === 1;
+        const unique = legend.length === 1 && slices.filter(el => fillOf(el) === fill).length === 1;
         if (unique) parts.push(legend[0]!);
         this.add(parts, 'slice', undefined, unique ? textOf(legend[0]!) : undefined);
       });

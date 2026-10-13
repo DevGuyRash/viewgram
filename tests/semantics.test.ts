@@ -107,3 +107,7 @@ test('normal native thickness tokens are solid while explicit thick tokens stay 
   const {svg,get}=setup('<path id="normal" class="edge-thickness-normal edge-pattern-solid transition" stroke-width="1.5"/><path id="thick" class="edge-thickness-thick edge-pattern-solid transition" stroke-width="3.5"/>','stateDiagram');
   const h=new SemanticHighlighter(svg);assert.equal(get('normal').getAttribute('data-kmv-line'),'solid');assert.equal(get('thick').getAttribute('data-kmv-line'),'thick');assert.equal(get('normal').getAttribute('stroke-width'),'1.5');assert.equal(get('thick').getAttribute('stroke-width'),'3.5');h.dispose();
 });
+test('pie legends require a unique displayed color before grouping with slices', () => {
+  const {svg,get,hover}=setup('<path class="pieCircle" id="slice-one" style="fill:rgb(230, 221, 250)"/><path class="pieCircle" id="slice-two" style="fill:rgb(230, 221, 250)"/><path class="pieCircle" id="slice-three" style="fill:rgb(218, 232, 240)"/><g class="legend" id="repeated"><rect style="fill:rgb(230, 221, 250)"/><text>Repeated</text></g><g class="legend" id="unique"><rect style="fill:rgb(218, 232, 240)"/><text>Unique</text></g>','pie');
+  const h=new SemanticHighlighter(svg);hover('repeated');assert.equal(svg.querySelectorAll('.pieCircle.kmv-semantic-active').length,0);hover('unique');assert.ok(get('slice-three').classList.contains('kmv-semantic-active'));assert.equal(svg.querySelectorAll('.pieCircle.kmv-semantic-active').length,1);h.dispose();
+});
