@@ -56,6 +56,7 @@ test('keyboard panning and fit/native shortcuts only affect focused viewport',as
 test('modal fits both axes on every opening, independent from inline zoom',async({page})=>{
  for(const name of ['wide-flowchart','tall-flowchart','branching-flowchart','sequence']) {
   const root=fixture(page,name);await root.getByRole('button',{name:'Native size (100%)',exact:true}).click();
+  await expect(root).toHaveAttribute('data-scale','1');
   const inlineBefore=await root.getAttribute('data-scale');
   await root.getByRole('button',{name:'Open diagram lightbox'}).click();
   const modal=page.locator('.kmv-dialog .kmv-viewer');await expect(modal).toHaveAttribute('data-mode','contain');
@@ -85,7 +86,7 @@ test('hidden-to-visible initializes fit; width resize refits but native mode sta
  const root=fixture(page,'wide-flowchart');const previous=await geometry(root);await page.setViewportSize({width:900,height:900});await expect.poll(async()=>(await geometry(root)).scale).not.toBe(previous.scale);
  await root.getByRole('button',{name:'Native size (100%)',exact:true}).click();await page.setViewportSize({width:1100,height:900});await expect(root).toHaveAttribute('data-scale','1');
 });
-test('ordinary wheel remains document scroll, never wheel zoom',async({page})=>{
+test('ordinary wheel scrolls the note when the width-fitted diagram cannot pan',async({page})=>{
  const root=fixture(page,'wide-flowchart');const before=await root.getAttribute('data-scale');const box=(await root.locator('.kmv-viewport').boundingBox())!;await page.mouse.move(box.x+30,box.y+30);await page.mouse.wheel(0,250);
  await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);await expect(root).toHaveAttribute('data-scale',before!);
 });
