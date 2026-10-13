@@ -76,7 +76,7 @@ function snapshot(svg: SVGSVGElement): { clone: SVGSVGElement; size: Size; backg
   if (svg.classList.contains('kmv-has-semantic-hover') || svg.querySelector('.kmv-semantic-active, .kmv-semantic-dim, .kmv-semantic-related')) {
     throw new DiagramExportError('Move away from the highlighted diagram and try exporting again.');
   }
-  const elements = [svg, ...svg.querySelectorAll('*')];
+  const elements = [svg, ...svg.querySelectorAll('*')].filter(element => !element.hasAttribute('data-kmv-hit-target'));
   const styles: Map<string, string>[] = [];
   // Preflight before cloning: even a detached HTML image can start loading its src.
   for (const element of elements) {
@@ -98,6 +98,7 @@ function snapshot(svg: SVGSVGElement): { clone: SVGSVGElement; size: Size; backg
     styles.push(properties);
   }
   const clone = svg.cloneNode(true) as SVGSVGElement;
+  for (const target of clone.querySelectorAll('[data-kmv-hit-target]')) target.remove();
   const copies = [clone, ...clone.querySelectorAll('*')];
   for (let i = 0; i < copies.length; i++) {
     const copy = copies[i]!;
