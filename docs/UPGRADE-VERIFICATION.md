@@ -10,9 +10,9 @@ The later upgrade patch applied cleanly to the verified baseline.
 
 The reconciled branch retains the imported upgrade and original remote history, followed by focused source-target, gesture and semantic corrections through runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. Source merge can retain the disclosed unrun native verification limits; native scratch qualification remains mandatory before real-vault installation.
 
-## Final artifact identity
+## Historical artifact identity before the namespace change
 
-The final local build belongs to runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. SHA-256 values identify the unchanged artifacts for later native scratch qualification; recording them does not install or release them.
+This historical local build used plugin ID `mermaid-viewer` and runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. Its SHA-256 values preserve the pre-namespace provenance; the current manifest identity is recorded below. Recording artifacts does not install or release them.
 
 | Local artifact | SHA-256 |
 | --- | --- |
@@ -20,6 +20,14 @@ The final local build belongs to runtime commit `0652cc556e0f24264dd7c40f8b68ff9
 | `dist/styles.css` | `f09be4f8c7488d4a351547a6f08a8122e2e5108a2de2d17e77746932e8752651` |
 | `dist/manifest.json` | `e56c023dc84f7a422f8ff1124987348634e7f7940219ce4fa28fdba156fc023e` |
 | `demo/standalone.html` | `ee66478dc827f65e4cae804bbe7dd9f74ea848904b34fa83bdd80a4f239f63e3` |
+
+## Namespaced identity and staging checks
+
+The plugin ID changed from `mermaid-viewer` to `devguyrash-mermaid-viewer` while retaining display name Mermaid Viewer, author DevGuyRash and version 0.1.0. The current `dist/manifest.json` SHA-256 is `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c`. Runtime JavaScript, CSS and the standalone demo remain byte-identical to the historical hashes above, retaining the prior browser evidence.
+
+After the identity and scratch guard changes, `npm run build`, `npm run typecheck` and `npm test` passed (99 tests). Five focused CLI groups use owned synthetic `/tmp` fixtures: stage only the new-ID artifacts without enablement or migration; refuse stale built ID/name/author/version; refuse unsafe IDs; preserve sentinel data when existing or nested vault targets are refused; and reject symlink aliases into a vault, including paths with missing intermediate parents. Every refusal occurs before target creation.
+
+A separate smoke staged the actual repository build and synthetic acceptance fixtures into a new owned `/tmp` directory. The three staged artifact hashes matched the current build, only `devguyrash-mermaid-viewer` existed under the plugin directory, and no old-ID folder, `data.json` or enabled-plugin list was created. All owned test and smoke directories were removed. No real or prior scratch vault was modified; native scratch qualification remains unrun.
 
 ## Focused checks
 
