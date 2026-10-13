@@ -88,3 +88,18 @@ test('legacy sequence actor labels and lifelines stay together without fabricati
   const { svg, get, hover } = setup('<g><line class="actor-line" name="Alice" id="life"/><g id="actor"><rect class="actor actor-top" name="Alice"/><text class="actor" id="label">Alice</text></g></g><text class="messageText" id="message">Hello</text><line class="messageLine0" id="opaque" marker-end="url(#arrowhead)"/>','sequence');
   const h = new SemanticHighlighter(svg); hover('label'); assert.ok(get('life').classList.contains('kmv-semantic-active')); assert.ok(!get('opaque').classList.contains('kmv-semantic-related')); hover('message'); assert.ok(get('opaque').classList.contains('kmv-semantic-active')); h.dispose();
 });
+test('explicit sequence open and cross messages retain sender direction and native type', () => {
+  const {svg,get,hover}=setup('<g data-et="participant" data-id="Alice" id="alice"><text>Alice</text></g><g data-et="participant" data-id="Bob" id="bob"><text>Bob</text></g><line id="open" class="messageLine0" data-from="Alice" data-to="Bob"/><line id="dotted-open" class="messageLine1" data-from="Alice" data-to="Bob"/><line id="cross" class="messageLine0" data-from="Alice" data-to="Bob" marker-end="url(#crosshead)"/><line id="dotted-cross" class="messageLine1" data-from="Alice" data-to="Bob" marker-end="url(#crosshead)"/>','sequence');
+  const h=new SemanticHighlighter(svg);hover('alice');
+  for(const id of ['open','dotted-open','cross','dotted-cross']) assert.equal(get(id).getAttribute('data-kmv-relation'),'outgoing');
+  assert.equal(get('dotted-cross').getAttribute('data-kmv-line'),'dashed');assert.equal(get('cross').getAttribute('marker-end'),'url(#crosshead)');
+  hover('bob');for(const id of ['open','dotted-open','cross','dotted-cross']) assert.equal(get(id).getAttribute('data-kmv-relation'),'incoming');h.dispose();
+});
+test('undirected self loops stay distinct from directed self loops', () => {
+  const {svg,get,hover}=setup('<g class="node" id="flowchart-A-0"><text>A</text></g><path id="undirected-loop" class="flowchart-link" data-from="A" data-to="A"/><path id="directed-loop" class="flowchart-link" data-from="A" data-to="A" marker-end="url(#arrow)"/>');
+  const h=new SemanticHighlighter(svg);hover('flowchart-A-0');assert.equal(get('undirected-loop').getAttribute('data-kmv-relation'),'undirected');assert.equal(get('directed-loop').getAttribute('data-kmv-relation'),'both');h.dispose();
+});
+test('duplicate renderer edge IDs leave their ambiguous labels locally highlighted', () => {
+  const {svg,get,hover}=setup(graph+'<path id="duplicate" class="flowchart-link" data-from="A" data-to="B" marker-end="url(#arrow)"/><path id="duplicate" class="flowchart-link" data-from="C" data-to="D" marker-end="url(#arrow)"/><g class="edgeLabel" id="ambiguous-label" data-id="duplicate"><text>Ambiguous</text></g>');
+  const h=new SemanticHighlighter(svg);hover('ambiguous-label');assert.equal(svg.querySelectorAll('.node.kmv-semantic-related').length,0);assert.ok(get('ambiguous-label').classList.contains('kmv-semantic-active'));h.dispose();
+});

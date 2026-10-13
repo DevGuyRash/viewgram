@@ -186,6 +186,9 @@ export class SemanticHighlighter {
       const directed = (marker: string) => !!marker && marker !== 'none' && !/(?:onlyOne|zeroOrOne|oneOrMore|zeroOrMore|lollipop|circle|cross)/i.test(marker);
       let a = directed(start), b = directed(end);
       if (group?.closest('.architecture-edges')) [a, b] = this.architectureArrows(el, group);
+      // Explicit sequence sender/recipient metadata also identifies messages with
+      // an open arrow or a cross ending. Preserve their native line and marker type.
+      if (/sequence/.test(this.family) && !a && !b && attr(el, 'data-from') && attr(el, 'data-to')) b = true;
       item.edge = { from, to, direction: a && b ? 'both' : a ? 'reverse' : b ? 'forward' : 'undirected' };
       for (const node of [from, to]) if (node) node.links.add(item);
       const classes = el.getAttribute('class') || '';
@@ -196,12 +199,16 @@ export class SemanticHighlighter {
       edgeItems.push(item);
     }
     // Labels refer to the renderer's edge ID; never match on human-readable text.
-    const edgeById = new Map<string, Item>();
+    const edgeById = new Map<string, Set<Item>>();
     for (const item of edgeItems) for (const el of item.elements) {
-      for (const id of [item.target.id, el.id, attr(el, 'data-id')]) if (id) edgeById.set(id, item);
+      for (const id of [item.target.id, el.id, attr(el, 'data-id')]) if (id) {
+        let matches = edgeById.get(id); if (!matches) edgeById.set(id, matches = new Set());
+        matches.add(item);
+      }
     }
     for (const el of this.select('.edgeLabel [data-id], .edgeLabel[id]')) {
-      const item = edgeById.get(attr(el, 'data-id', 'id')); if (!item) continue;
+      const matches = edgeById.get(attr(el, 'data-id', 'id'));
+      const item = matches?.size === 1 ? [...matches][0] : undefined; if (!item) continue;
       this.attach(item, el); item.target.label ||= textOf(el);
     }
     if (/sequence/.test(this.family)) {
@@ -302,8 +309,8 @@ export class SemanticHighlighter {
     }
   }
   private relation(edge: NonNullable<Item['edge']>, node: Item): Relation {
-    if (edge.direction === 'both' || (edge.from === node && edge.to === node)) return 'both';
     if (edge.direction === 'undirected') return 'undirected';
+    if (edge.direction === 'both' || (edge.from === node && edge.to === node)) return 'both';
     const leaves = edge.direction === 'forward' ? edge.from === node : edge.to === node;
     return leaves ? 'outgoing' : 'incoming';
   }
