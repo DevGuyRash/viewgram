@@ -2,7 +2,7 @@
 
 - Keep source in a standalone checkout, such as `~/repos/obsidian-mermaid-viewer`.
 - Build into that checkout's `dist/` directory.
-- After native scratch qualification, a later installation copies only the three runtime artifacts into `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`.
+- Installation copies only the three runtime artifacts into `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`. Native validation in an isolated scratch vault is recommended; a prior namespaced build was installed at the owner's explicit request while native QA remained unrun.
 - Preserve `data.json` and unrelated vault settings. This implementation does not write persistent settings. Note source changes only after an explicit Save in the Mermaid source editor.
 - Do not build into a live vault or use a live development symlink for validation.
 
@@ -12,4 +12,4 @@ The plugin ID changed from `mermaid-viewer` to `devguyrash-mermaid-viewer`; the 
 
 Reading-view instances belong to MarkdownRenderChild. Live Preview instances belong to a CodeMirror ViewPlugin, gated by the public Live Preview state field. The editor adapter observes only its own rendered content and never moves native widget roots.
 
-Component CSS remains scoped. The high-specificity overflow override changes only viewport clipping; it does not impose workspace-level overflow or layout behavior. Synthetic regression CSS reproduces the relevant host collision without including a user's vault stylesheet.
+Component CSS remains scoped. High-specificity overflow rules preserve viewer viewport clipping and internal menu/status scrolling; they do not impose workspace-level overflow or layout behavior. Synthetic regression CSS reproduces the relevant host collision without including a user's vault stylesheet.
