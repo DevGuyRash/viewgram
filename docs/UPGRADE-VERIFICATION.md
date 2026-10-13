@@ -8,7 +8,18 @@ The later source-only transfer contains exactly published commit `119b659a509733
 
 The locally imported upgrade is Library file `libfile_df27ed60a8e08191b1b411e3b3d69480`, version 2, archive `mermaid-viewer-upgrade-checkpoint-20261013.zip`, SHA-256 `0cb22a02b61fce17c31441b8c6a62929368ec50405d64c9bbf06e8b7e53025c9`. Its recorded cloud checkpoint is `b98f520edb8e635741f3ed3c1b9527d4f36d3193`; the patch applied cleanly to the exact published baseline.
 
-The reconciled branch uses the original remote history. Signed import checkpoint `07449d34f8471c3a3434e4b704b84fe6457a1000` preserves v2, followed by focused source-target, gesture and semantic corrections through runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. Historical cloud recovery commits identify checkpoints rather than the original remote history. Review and native qualification still gate merge and installation.
+The reconciled branch uses the original remote history. Signed import checkpoint `07449d34f8471c3a3434e4b704b84fe6457a1000` preserves v2, followed by focused source-target, gesture and semantic corrections through runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. Historical cloud recovery commits identify checkpoints rather than the original remote history. Source merge can retain the disclosed unrun native verification limits; native scratch qualification remains mandatory before real-vault installation.
+
+## Final artifact identity
+
+The final local build belongs to runtime commit `0652cc556e0f24264dd7c40f8b68ff96dd54bb1e`. SHA-256 values identify the unchanged artifacts for later native scratch qualification; recording them does not install or release them.
+
+| Local artifact | SHA-256 |
+| --- | --- |
+| `dist/main.js` | `5b86f1d797164d4d00c5511800201cc5fab4b22a1cdb0de6c48693fc403403f1` |
+| `dist/styles.css` | `f09be4f8c7488d4a351547a6f08a8122e2e5108a2de2d17e77746932e8752651` |
+| `dist/manifest.json` | `e56c023dc84f7a422f8ff1124987348634e7f7940219ce4fa28fdba156fc023e` |
+| `demo/standalone.html` | `ee66478dc827f65e4cae804bbe7dd9f74ea848904b34fa83bdd80a4f239f63e3` |
 
 ## Focused checks
 
