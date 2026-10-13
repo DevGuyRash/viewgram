@@ -1,14 +1,18 @@
 import { center, constrain, fitted, nativeSize, parsePercent, resized, validSize, zoomAt, type Size, type ViewState } from './math';
 import { Lifetime } from './lifetime';
 
+export interface ViewerActionResult { message: string; fallback?: { label: string; run(): void } }
+export interface ViewerAction { text: string; label: string; run(): Promise<ViewerActionResult | void> | ViewerActionResult | void }
 export interface ViewerOptions {
   mode: 'width' | 'contain';
   label?: string;
   nativeMermaidParent?: boolean;
   open?: () => void;
+  actions?: ViewerAction[];
   openLink?: (href: string, newLeaf: boolean) => void;
 }
-const interactive = 'a, button, input, textarea, select, [role="button"], [contenteditable="true"]';
+const ZOOM_PRESETS = [10, 25, 50, 75, 100, 125, 150, 200, 300, 400];
+const interactive = 'a, summary, button, input, textarea, select, [role="button"], [contenteditable="true"]';
 function element(doc: Document, tag: string, className: string, text?: string): HTMLElement {
   const el = doc.createElement(tag); el.className = className; if (text) el.textContent = text; return el;
 }
@@ -27,9 +31,14 @@ export class ViewportController {
   private drag: { id: number; x: number; y: number; startX: number; startY: number; moved: boolean } | null = null;
   private suppressClick = false;
   private status: HTMLElement;
+  private actionStatus: HTMLElement;
   private zoomOut: HTMLButtonElement;
   private zoomIn: HTMLButtonElement;
   private readonly win: Window;
+  private userHeight = false;
+  private heightObserver?: ResizeObserver;
+  private heightParent?: Element;
+  private zoomMenu: HTMLElement;
 
   constructor(readonly svg: SVGSVGElement, readonly options: ViewerOptions, native = nativeSize(svg)) {
     if (!native) throw new Error('SVG needs a valid viewBox or explicit native dimensions.');
@@ -57,12 +66,33 @@ export class ViewportController {
     this.status = element(doc, 'div', 'kmv-status');
     this.status.setAttribute('role', 'status');
     this.status.setAttribute('aria-live', 'polite');
-    const hint = element(doc, 'div', 'kmv-hint', 'Drag to explore · 100% is native size');
+    const hint = element(doc, 'div', 'kmv-hint', 'Scroll or drag to explore · Ctrl/⌘ + scroll to zoom');
+    hint.title = 'Hover a diagram element to see related items. Incoming, outgoing, bidirectional and undirected relations have distinct emphasis; theme filters can affect colors. Native line styles and arrowheads retain relationship type. Double-click an element to edit Mermaid source.';
     const actions = element(doc, 'div', 'kmv-actions');
-    actions.append(this.button(options.mode === 'width' ? 'Fit width' : 'Fit diagram', options.mode === 'width' ? 'Fit width' : 'Fit diagram', () => this.fit()));
-    actions.append(this.button('100%', 'Native size (100%)', () => this.setZoom(1)));
     if (options.open) actions.append(this.button('Expand ↗', 'Open diagram lightbox', options.open));
-    info.append(this.status, hint, actions);
+    const actionStatus = this.actionStatus = element(doc, 'div', 'kmv-action-status'); actionStatus.setAttribute('role', 'status');
+    if (options.actions?.length) {
+      const menu = doc.createElement('details'); menu.className = 'kmv-tools';
+      const summary = doc.createElement('summary'); summary.className = 'kmv-button'; summary.textContent = 'Source & export';
+      const choices = element(doc, 'div', 'kmv-tool-menu');
+      menu.append(summary, choices);
+      for (const action of options.actions) {
+        const button = this.button(action.text, action.label, () => {
+          menu.open = false; button.disabled = true; actionStatus.textContent = 'Working…';
+          void Promise.resolve().then(() => action.run()).then(result => {
+            if (this.lifetime.disposed) return;
+            actionStatus.textContent = result?.message ?? '';
+            if (result?.fallback) actionStatus.append(this.button(result.fallback.label, result.fallback.label, result.fallback.run));
+          }, error => { if (!this.lifetime.disposed) actionStatus.textContent = error instanceof Error ? error.message : String(error); })
+            .finally(() => { button.disabled = false; });
+        });
+        choices.append(button);
+      }
+      this.lifetime.listen(doc, 'pointerdown', event => { if (!menu.contains(event.target as Node)) menu.open = false; });
+      this.lifetime.listen(menu, 'keydown', ((event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); menu.open = false; summary.focus(); } }) as EventListener);
+      actions.append(menu);
+    }
+    info.append(this.status, hint, actions, actionStatus);
     const dock = element(doc, 'div', 'kmv-dock');
     dock.setAttribute('aria-label', 'Diagram controls');
     const row = element(doc, 'div', 'kmv-zoom-row');
@@ -74,7 +104,31 @@ export class ViewportController {
     this.zoomInput.setAttribute('aria-label', 'Zoom percentage');
     this.zoomInput.setAttribute('title', 'Enter 1–1000%, or a multiplier such as 1.5x');
     this.zoomInput.spellcheck = false;
-    row.append(this.zoomOut, this.zoomInput, this.zoomIn);
+    const zoomPicker = element(doc, 'div', 'kmv-zoom-picker');
+    this.zoomMenu = element(doc, 'div', 'kmv-zoom-menu');
+    this.zoomMenu.hidden = true;
+    this.zoomMenu.setAttribute('role', 'group');
+    this.zoomMenu.setAttribute('aria-label', 'Zoom presets');
+    const togglePresets = (): void => {
+      this.zoomMenu.hidden = !this.zoomMenu.hidden;
+      this.zoomInput.setAttribute('aria-expanded', String(!this.zoomMenu.hidden));
+    };
+    this.zoomInput.setAttribute('aria-expanded', 'false');
+    this.zoomInput.setAttribute('aria-haspopup', 'true');
+    for (const preset of ZOOM_PRESETS) this.zoomMenu.append(this.button(`${preset}%`, `Zoom to ${preset}%`, () => {
+      this.setZoom(preset / 100); this.closePresets(); this.zoomInput.focus({ preventScroll: true });
+    }));
+    zoomPicker.append(this.zoomInput, this.button('⌄', 'Choose zoom preset', togglePresets), this.zoomMenu);
+    this.lifetime.listen(this.zoomInput, 'click', togglePresets);
+    this.lifetime.listen(this.zoomMenu, 'keydown', ((event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); this.closePresets(); this.zoomInput.focus(); } }) as EventListener);
+    this.lifetime.listen(doc, 'pointerdown', event => {
+      if (!zoomPicker.contains(event.target as Node)) this.closePresets();
+    });
+    row.append(
+      this.button(options.mode === 'width' ? 'Fit width' : 'Fit diagram', options.mode === 'width' ? 'Fit width' : 'Fit diagram', () => this.fit()),
+      this.button('100%', 'Native size (100%)', () => this.setZoom(1)),
+      this.zoomOut, zoomPicker, this.zoomIn,
+    );
     const dpad = element(doc, 'div', 'kmv-dpad');
     const directions: [string, string, string, () => void][] = [
       ['↑', 'Pan up', 'kmv-up', () => this.pan(0, 1)],
@@ -86,13 +140,20 @@ export class ViewportController {
     for (const [text, label, cls, fn] of directions) { const button = this.button(text, label, fn); button.classList.add(cls); dpad.append(button); }
     dock.append(row, dpad); footer.append(info, dock); this.root.append(this.viewport, footer);
     this.state.mode = options.mode;
+    if (options.mode === 'width') this.addResizeHandle();
     this.events();
+    this.lifetime.listen(this.win, 'resize', () => this.autoHeight(this.viewport.clientWidth));
     const observer = new ResizeObserver(entries => {
       const entry = entries[0]; if (!entry || this.lifetime.disposed) return;
       this.resize({ width: entry.contentRect.width, height: entry.contentRect.height });
     });
     observer.observe(this.viewport);
     this.lifetime.add(() => observer.disconnect());
+    if (options.mode === 'width') {
+      this.heightObserver = new ResizeObserver(() => this.autoHeight(this.viewport.clientWidth));
+      this.heightObserver.observe(footer);
+      this.lifetime.add(() => this.heightObserver?.disconnect());
+    }
     this.lifetime.add(() => { if (this.frame) this.win.cancelAnimationFrame(this.frame); this.finishDrag(); });
   }
   private button(text: string, label: string, fn: (e: MouseEvent) => void): HTMLButtonElement {
@@ -111,14 +172,15 @@ export class ViewportController {
       if (actions[e.key]) { e.preventDefault(); e.stopPropagation(); actions[e.key]!(); }
     }) as EventListener);
     on('keydown', ((e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); this.zoomMenu.hidden = false; this.zoomInput.setAttribute('aria-expanded', 'true'); (this.zoomMenu.querySelector('button') as HTMLButtonElement | null)?.focus(); return; }
       if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); this.commitInput(); this.viewport.focus({ preventScroll: true }); }
-      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.zoomInput.value = this.percent(); this.viewport.focus({ preventScroll: true }); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.closePresets(); this.zoomInput.value = this.percent(); this.viewport.focus({ preventScroll: true }); }
     }) as EventListener, this.zoomInput);
     on('change', (() => this.commitInput()) as EventListener, this.zoomInput);
     on('focus', (() => this.zoomInput.select()) as EventListener, this.zoomInput);
     on('pointerdown', ((e: PointerEvent) => {
       this.suppressClick = false;
-      if (e.button !== 0 || !e.isPrimary || (e.target as Element).closest(interactive) || !this.canPan() || this.suspended) return;
+      if ((e.button !== 0 && e.button !== 1) || !e.isPrimary || (e.target as Element).closest(interactive) || !this.canPan() || this.suspended) return;
       // Touch retains vertical document scrolling in width-fit mode. Use 100%/zoom for touch dragging.
       if (e.pointerType === 'touch' && this.state.mode !== 'manual') return;
       e.preventDefault(); e.stopPropagation();
@@ -152,7 +214,75 @@ export class ViewportController {
       e.stopPropagation();
     }) as EventListener, this.root);
     on('dblclick', ((e: MouseEvent) => { if (!(e.target as Element).closest(interactive)) e.preventDefault(); e.stopPropagation(); }) as EventListener, this.root);
-    // No wheel handler: ordinary wheel/trackpad gestures continue scrolling the note.
+    on('auxclick', ((e: MouseEvent) => {
+      if (e.button === 1 && this.suppressClick) { e.preventDefault(); e.stopPropagation(); this.suppressClick = false; }
+    }) as EventListener);
+    on('wheel', ((e: WheelEvent) => {
+      if (this.suspended || (e.target as Element).closest(interactive)) return;
+      const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? this.size.height : 1;
+      if (e.ctrlKey || e.metaKey) {
+        const rect = this.viewport.getBoundingClientRect();
+        this.state = zoomAt(this.native, this.size, this.state,
+          this.state.scale * Math.exp(-e.deltaY * factor * .002),
+          { x: e.clientX - rect.left, y: e.clientY - rect.top });
+      } else {
+        const dx = (e.shiftKey && e.deltaX === 0 ? e.deltaY : e.deltaX) * factor;
+        const dy = (e.shiftKey && e.deltaX === 0 ? 0 : e.deltaY) * factor;
+        const next = constrain(this.native, this.size, { ...this.state, mode: 'manual', x: this.state.x - dx, y: this.state.y - dy });
+        if (next.x === this.state.x && next.y === this.state.y) return; // At edges, let the note scroll.
+        this.state = next;
+      }
+      e.preventDefault(); e.stopPropagation(); this.closePresets(); this.schedule();
+    }) as EventListener, this.viewport, { passive: false });
+  }
+  private closePresets(): void {
+    this.zoomMenu.hidden = true; this.zoomInput.setAttribute('aria-expanded', 'false');
+  }
+  private heightLimit(): number {
+    const parent = this.root.closest('.view-content, .markdown-reading-view, .cm-scroller') as HTMLElement | null;
+    if (parent && parent !== this.heightParent && this.heightObserver) {
+      if (this.heightParent) this.heightObserver.unobserve(this.heightParent);
+      this.heightParent = parent; this.heightObserver.observe(parent);
+    }
+    const available = Math.min(this.win.innerHeight, parent?.clientHeight || this.win.innerHeight);
+    const footer = this.root.querySelector('.kmv-footer') as HTMLElement | null;
+    return Math.max(150, available * .88 - (footer?.offsetHeight || 80));
+  }
+  private autoHeight(width: number): void {
+    if (this.options.mode !== 'width' || width <= 0) return;
+    const height = this.userHeight ? this.viewport.clientHeight : this.native.height * Math.min(1, Math.max(1, width - 32) / this.native.width) + 32;
+    const next = Math.round(Math.max(150, Math.min(this.heightLimit(), height)));
+    if (Math.abs(this.viewport.clientHeight - next) > 1) this.viewport.style.height = `${next}px`;
+  }
+  private addResizeHandle(): void {
+    const handle = this.button('↕', 'Resize diagram height. Arrow keys resize; Home restores automatic height.', () => {});
+    handle.classList.add('kmv-resize-handle');
+    handle.setAttribute('aria-label', 'Resize diagram height');
+    let resize: { id: number; y: number; height: number } | null = null;
+    this.lifetime.listen(handle, 'pointerdown', ((e: PointerEvent) => {
+      if (e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation(); this.userHeight = true;
+      resize = { id: e.pointerId, y: e.clientY, height: this.viewport.clientHeight };
+      handle.setPointerCapture(e.pointerId);
+    }) as EventListener);
+    this.lifetime.listen(handle, 'pointermove', ((e: PointerEvent) => {
+      if (!resize || resize.id !== e.pointerId) return;
+      e.preventDefault();
+      this.viewport.style.height = `${Math.max(150, Math.min(this.heightLimit(), resize.height + e.clientY - resize.y))}px`;
+    }) as EventListener);
+    const finish = (): void => {
+      const previous = resize; resize = null;
+      if (previous && handle.hasPointerCapture(previous.id)) handle.releasePointerCapture(previous.id);
+    };
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) this.lifetime.listen(handle, type, finish);
+    this.lifetime.listen(this.win, 'blur', finish); this.lifetime.add(finish);
+    this.lifetime.listen(handle, 'keydown', ((e: KeyboardEvent) => {
+      if (!['ArrowUp', 'ArrowDown', 'Home'].includes(e.key)) return;
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Home') { this.userHeight = false; this.autoHeight(this.viewport.clientWidth); }
+      else { this.userHeight = true; this.viewport.style.height = `${Math.max(150, Math.min(this.heightLimit(), this.viewport.clientHeight + (e.key === 'ArrowDown' ? 40 : -40)))}px`; }
+    }) as EventListener);
+    this.viewport.append(handle);
   }
   private finishDrag(): void {
     const drag = this.drag; this.drag = null; this.root.classList.remove('kmv-dragging');
@@ -160,13 +290,16 @@ export class ViewportController {
   }
   private percent(): string { return `${Number((this.state.scale * 100).toFixed(2))}%`; }
   private commitInput(): void {
+    this.closePresets();
     const parsed = parsePercent(this.zoomInput.value);
     if (parsed !== null) this.setZoom(parsed);
     this.zoomInput.value = this.percent();
   }
+  announce(message: string): void { if (!this.lifetime.disposed) this.actionStatus.textContent = message; }
   canPan(): boolean { return this.native.width * this.state.scale > this.size.width - 32 || this.native.height * this.state.scale > this.size.height - 32; }
   resize(next: Size): void {
     if (!validSize(next) || this.lifetime.disposed) return; // Hidden containers keep their state until visible.
+    this.autoHeight(next.width);
     if (this.initialized && next.width === this.size.width && next.height === this.size.height) return;
     this.state = this.initialized ? resized(this.native, this.size, next, this.state) : fitted(this.native, next, this.options.mode);
     this.size = next; this.initialized = true; this.schedule();

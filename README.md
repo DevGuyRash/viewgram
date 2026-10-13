@@ -1,19 +1,18 @@
 # Mermaid Viewer
 
-Private source for an Obsidian plugin that adds native-scale zoom, drag panning and an independently fitted lightbox to existing Mermaid SVGs.
+Private source for an Obsidian plugin that adds native-scale navigation, semantic interaction, source editing and image export to existing Mermaid SVGs.
 
 Plugin ID: `mermaid-viewer`. Repository name: `obsidian-mermaid-viewer`.
 
 ## Implementation
 
-- Inline diagrams initially fit horizontally; tall diagrams may overflow vertically.
-- `100%` means native SVG viewBox size, not the responsive fitted baseline.
-- Editable percentage, plus/minus, keyboard controls, grab/drag and a bottom-right four-arrow pad with geometric recenter.
-- Every lightbox starts with the whole diagram fitted, independently of the inline viewport.
-- The original SVG is moved temporarily, never cloned or rerendered. IDs and direct listeners survive.
-- Reading view uses component-owned Markdown postprocessing; Live Preview uses a CodeMirror ViewPlugin with per-editor lifecycle and source-path tracking.
-- Native Mermaid parent styling is preserved in inline/modal views without hardcoding filters or overriding explicit SVG filters.
-- No extra Mermaid engine, network requests, polling, note-source writes or persistent settings in the plugin.
+- Inline diagrams grow to their natural width-fitted height, capped near 88% of the visible pane including controls. A bottom-right handle changes height; arrow keys resize and Home restores automatic sizing.
+- Fit, native `100%`, minus/plus, editable percentage and presets are grouped. Ordinary wheel/trackpad gestures pan overflowing diagrams, returning note scrolling at an edge. Ctrl/Command-wheel zooms around the pointer; Shift-wheel pans horizontally. Left/middle dragging, keyboard panning and the direction pad remain available.
+- Hover emphasizes semantic elements and related endpoints where the native SVG exposes unambiguous IDs or metadata. Incoming/outgoing/bidirectional/undirected relations use distinct emphasis; native arrowheads, cardinalities and dashed/thick lines remain intact. Nongraph families use slices, tasks, cards, fields, series or local groups. Opaque renderer IDs get conservative local highlighting, never guessed relationships.
+- Double-click an element to edit the actual Mermaid block, or use Source & export. Identifiable flowchart/block node labels have an escaped label editor; other elements open the full source with an unambiguous matching text selection when available. Native Mermaid validates before saving. Reading view uses atomic vault updates; Live Preview edits its owning CodeMirror document, including undo. Concurrent note changes, ambiguous source positions and Markdown fences are rejected.
+- Copy source or image; save SVG, PNG, JPG and WebP. Clipboard denial is reported and exposes a Save fallback. Raster export is bounded to 8192 pixels per side and 16 megapixels, with any reduction reported. Unsupported HTML-label rendering/encoders offer SVG rather than claiming success.
+- Every lightbox starts independently fitted. The same native SVG moves temporarily; IDs and direct listeners survive. Export creates a separate, sanitized styled snapshot; it never replaces the rendered diagram.
+- Obsidian still owns Mermaid rendering, theme presentation and the note lifecycle. No extra Mermaid engine, external resource fetching, polling, persistent settings or automatic note edits are added. Source changes happen only after Save.
 
 ## Build
 
@@ -30,11 +29,9 @@ Source checkout belongs outside a vault. The later plugin destination is `<vault
 
 ## Current status
 
-This repository preserves the implementation from the private v2 candidate. The latest work is source setup and implementation first; unit/integration tests have not been rerun for this publication.
+The upgrade is implemented against the exact published `119b659a5097336d0cb4305faeb7d3250c53ebed` source tree recovered through a verified source transfer. Focused DOM/source/export tests and build/typecheck results are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md).
 
-Earlier evidence on the preceding candidate covered 38 native parser/render cases and 37 Reading-view viewport cases. It found two blockers, now addressed in source: Live Preview attachment and native dark-mode presentation. Those fixes still need their affected native/UI rerun. Prior checks are historical evidence, not acceptance of this checkout.
-
-Mica compatibility, real mobile, native relative links/popouts, embeds and performance remain unqualified. No live rollout is implied. See [remaining acceptance](docs/ACCEPTANCE.md) and [implementation status](docs/IMPLEMENTATION.md).
+Actual browser pixels, canvas exports and native Obsidian source updates remain unverified for this revision: the cloud browser process could not launch due to a socket permission denial. A passing emulated DOM test is not native/UI acceptance. Mica compatibility, real mobile, native relative links/popouts, embeds and performance remain unqualified. No live rollout is implied.
 
 ## Tests and demo, for the later validation phase
 

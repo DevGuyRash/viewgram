@@ -6,6 +6,7 @@ import branching from '../fixtures/branching-flowchart.mmd';
 import sequence from '../fixtures/sequence.mmd';
 import { RenderScope } from '../src/viewer/render-scope';
 import { DiagramViewer } from '../src/viewer/diagram';
+import type { DiagramSource } from '../src/viewer/source';
 import { waitForViewportReady } from '../src/viewer/readiness';
 
 const scopes: RenderScope[] = [];
@@ -22,7 +23,20 @@ function mount(name: string, target: HTMLElement): RenderScope {
   // Only locally generated, synthetic test fixtures. Production never parses SVG strings.
   container.append(document.importNode(new DOMParser().parseFromString(sources[name]!, 'image/svg+xml').documentElement, true));
   target.append(container);
-  const scope = new RenderScope(container, (href) => { document.querySelector('#link-status')!.textContent = `Opened ${href}`; });
+  let current = fixtureText[name] ?? (name === 'hidden' ? branching : sequence);
+  let revision = 0;
+  const source: DiagramSource = {
+    read: async () => ({ source: current, document: current, start: 0, end: current.length, line: 0 }),
+    validate: async next => { await mermaid.parse(next); },
+    write: async (snapshot, next) => {
+      if (snapshot.document !== current) throw new Error('Source changed; reopen the editor.');
+      const rendered = await mermaid.render(`edited_${name.replaceAll('-', '_')}_${++revision}`, next);
+      current = next;
+      sources[name] = rendered.svg;
+      container.replaceChildren(document.importNode(new DOMParser().parseFromString(rendered.svg, 'image/svg+xml').documentElement, true));
+    },
+  };
+  const scope = new RenderScope(container, (href) => { document.querySelector('#link-status')!.textContent = `Opened ${href}`; }, () => source);
   scopes.push(scope); return scope;
 }
 for (const name of names) mount(name, document.querySelector(`[data-fixture="${name}"]`)!);
@@ -81,7 +95,16 @@ async function showOriginal(id: string): Promise<TypeResult> {
 async function attachTypeViewer(result: TypeResult): Promise<TypeResult> {
  if(!originalSvg || result.svg!=='pass')return result;
  const host=taxonomyPreview.querySelector<HTMLElement>('.mermaid')!;
- taxonomyScope=new RenderScope(host);
+ let current = taxonomy.fixtures.find(item => item.id === result.id)!.sourceText;
+ taxonomyScope=new RenderScope(host, undefined, () => ({
+   read: async () => ({source:current,document:current,start:0,end:current.length,line:0}),
+   validate: async next => { await mermaid.parse(next); },
+   write: async (snapshot, next) => {
+     if(snapshot.source !== current) throw new Error('Source changed; reopen editor.');
+     const rendered = await mermaid.render(`taxonomy_edit_${++renderCount}`,next);
+     current=next; host.replaceChildren(document.importNode(new DOMParser().parseFromString(rendered.svg,'image/svg+xml').documentElement,true));
+   },
+ }));
  const root=host.querySelector<HTMLElement>('.kmv-viewer');
  if(!root){result.viewer='fail';result.message='Native SVG has no usable dimensions or was not wrapped.';return result;}
  try { await waitForViewportReady(root); }

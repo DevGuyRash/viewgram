@@ -1,4 +1,5 @@
 import { RenderScope } from '../viewer/render-scope';
+import type { DiagramSource } from '../viewer/source';
 
 export interface EditorScopeOwner {
   isActive(): boolean;
@@ -12,7 +13,7 @@ export class LivePreviewScope {
   private scope?: RenderScope;
   private sourcePath = '';
   private disposed = false;
-  constructor(private readonly contentDOM: HTMLElement, private readonly owner: EditorScopeOwner) {}
+  constructor(private readonly contentDOM: HTMLElement, private readonly owner: EditorScopeOwner, private readonly sourceFor?: (svg: SVGSVGElement) => DiagramSource) {}
 
   sync(livePreview: boolean, sourcePath: string): void {
     if (this.disposed) return;
@@ -22,7 +23,7 @@ export class LivePreviewScope {
     this.sourcePath = sourcePath;
     // Native widgets can render asynchronously after a CM update. RenderScope watches only this
     // editor's content subtree and changes only the SVG's Mermaid parent, never the CM widget root.
-    this.scope = new RenderScope(this.contentDOM, (href, newLeaf) => this.owner.openLink(href, this.sourcePath, newLeaf));
+    this.scope = new RenderScope(this.contentDOM, (href, newLeaf) => this.owner.openLink(href, this.sourcePath, newLeaf), this.sourceFor);
     this.owner.add(this.scope);
   }
   private clear(): void {

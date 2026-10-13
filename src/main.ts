@@ -1,14 +1,15 @@
-import { MarkdownRenderChild, Plugin } from 'obsidian';
+import { MarkdownRenderChild, Plugin, type MarkdownPostProcessorContext } from 'obsidian';
 import { RenderScope } from './viewer/render-scope';
+import { readingSource } from './editor/source-bridge';
 import { livePreviewExtension } from './editor/live-preview';
 
 class MermaidRenderChild extends MarkdownRenderChild {
   private scope?: RenderScope;
-  constructor(el: HTMLElement, private readonly plugin: MermaidViewer, private readonly sourcePath: string) { super(el); }
+  constructor(el: HTMLElement, private readonly plugin: MermaidViewer, private readonly context: MarkdownPostProcessorContext) { super(el); }
   onload(): void {
     this.scope = new RenderScope(this.containerEl, (href, newLeaf) => {
-      void this.plugin.app.workspace.openLinkText(href, this.sourcePath, newLeaf);
-    });
+      void this.plugin.app.workspace.openLinkText(href, this.context.sourcePath, newLeaf);
+    }, svg => readingSource(this.plugin.app, this.context, this.containerEl, svg));
     this.plugin.scopes.add(this.scope);
   }
   onunload(): void {
@@ -31,7 +32,7 @@ export default class MermaidViewer extends Plugin {
     this.registerMarkdownPostProcessor((el, ctx) => {
       if (el.closest('.kmv-viewer, .kmv-dialog')) return;
       if (!el.matches('.mermaid, .block-language-mermaid, code.language-mermaid') && !el.querySelector('.mermaid, .block-language-mermaid, code.language-mermaid')) return;
-      ctx.addChild(new MermaidRenderChild(el, this, ctx.sourcePath));
+      ctx.addChild(new MermaidRenderChild(el, this, ctx));
     }, 1000);
   }
   onunload(): void { this.active = false; for (const scope of this.scopes) scope.dispose(); this.scopes.clear(); }

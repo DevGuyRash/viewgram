@@ -3,7 +3,7 @@
 - Keep source in a standalone checkout, such as `~/repos/obsidian-mermaid-viewer`.
 - Build into that checkout's `dist/` directory.
 - A separately approved installation copies only the three runtime artifacts into `<vault>/.obsidian/plugins/mermaid-viewer/`.
-- Preserve `data.json` and unrelated vault settings. This implementation does not write persistent settings or note source.
+- Preserve `data.json` and unrelated vault settings. This implementation does not write persistent settings. Note source changes only after an explicit Save in the Mermaid source editor.
 - Do not build into a live vault or use a live development symlink for validation.
 
 Mica remains a separate plugin. Do not modify or rebuild its live source as part of this viewer's setup.

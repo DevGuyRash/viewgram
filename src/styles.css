@@ -1,3 +1,4 @@
+@import './viewer/semantics.css';
 /* Component-owned styles. No vault module changes, workspace overflow, or :has selectors. */
 .kmv-viewer {
   --kmv-bg: var(--background-primary, #171b24);
@@ -15,7 +16,7 @@
    Keep geometry and touch behavior lower-specificity so modal/manual states can override. */
 .kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { overflow: hidden !important; }
 .kmv-viewer .kmv-viewport {
-  position: relative; height: clamp(220px, 42vh, 380px); min-height: 150px; width: 100%;
+  position: relative; height: 300px; min-height: 150px; width: 100%;
   flex: 1 0 auto; outline-offset: -3px;
   border-radius: 11px 11px 0 0; box-sizing: border-box; touch-action: pan-y pinch-zoom;
   background-image: radial-gradient(var(--kmv-border) .6px, transparent .6px); background-size: 18px 18px;
@@ -77,3 +78,32 @@
   .kmv-viewer .kmv-viewport .kmv-surface { position: static; width: auto; height: auto; transform: none !important; }
   .kmv-viewer .kmv-surface > svg { max-width: 100% !important; height: auto !important; }
 }
+
+/* Keep zoom modes and scale together; allow generous diagram height inline. */
+.kmv-viewer .kmv-footer { align-items: center; flex-wrap: wrap; padding: 10px 12px; }
+.kmv-viewer .kmv-dock { flex: 0 1 auto; margin-left: auto; align-items: flex-end; }
+.kmv-viewer .kmv-zoom-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.kmv-viewer .kmv-zoom-row .kmv-button { padding: 0 8px; font-size: 12px; }
+.kmv-viewer .kmv-zoom-picker { display: flex; position: relative; align-items: center; border: 1px solid var(--kmv-border); border-radius: 7px; }
+.kmv-viewer .kmv-zoom-picker > .kmv-button { border: 0; min-width: 22px; padding: 0 4px; }
+.kmv-viewer .kmv-zoom-menu { position: absolute; z-index: 20; bottom: calc(100% + 6px); right: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 6px; background: var(--kmv-raised); border: 1px solid var(--kmv-border); border-radius: 9px; min-width: 150px; box-shadow: 0 6px 24px #0005; }
+.kmv-viewer .kmv-zoom-menu[hidden] { display: none; }
+.kmv-viewer .kmv-resize-handle { position: absolute; right: 4px; bottom: 4px; z-index: 2; cursor: ns-resize; touch-action: none; width: 28px; min-width: 28px; height: 24px; padding: 0; opacity: .8; }
+.kmv-dialog .kmv-resize-handle { display: none; }
+.kmv-source-editor { width: min(800px, 92vw); max-height: 90vh; overflow: auto; padding: 22px; border: 1px solid var(--background-modifier-border, #374153); border-radius: 12px; background: var(--background-primary, #171b24); color: var(--text-normal, #e9edf5); }
+.kmv-source-editor::backdrop { background: #090c14c4; }
+.kmv-source-editor h2 { margin: 0 0 10px; font-size: 18px; }
+.kmv-source-editor p { font-size: 13px; }
+.kmv-source-editor label { display: block; margin: 12px 0; font-size: 13px; }
+.kmv-source-editor textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 6px; padding: 10px; background: var(--background-secondary, #202631); color: inherit; border: 1px solid var(--background-modifier-border, #374153); border-radius: 6px; }
+.kmv-source-code { min-height: 260px; height: 40vh; font: 13px/1.5 var(--font-monospace, monospace); resize: vertical; white-space: pre; }
+.kmv-element-label { min-height: 70px; resize: vertical; }
+.kmv-source-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.kmv-source-status { color: var(--text-error, #ffa890); min-height: 1em; }
+.kmv-tools { position: relative; }
+.kmv-tools summary { list-style: none; }
+.kmv-tool-menu { position: absolute; z-index: 25; bottom: calc(100% + 6px); left: 0; min-width: 180px; padding: 6px; border: 1px solid var(--kmv-border); border-radius: 9px; background: var(--kmv-raised); box-shadow: 0 6px 24px #0005; }
+.kmv-tool-menu .kmv-button { display: flex; justify-content: flex-start; width: 100%; margin-bottom: 3px; }
+.kmv-action-status { max-width: 420px; font-size: 12px; color: var(--kmv-muted); }
+.kmv-action-status:empty { display: none; }
+.kmv-action-status .kmv-button { margin-left: 8px; }
