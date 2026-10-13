@@ -1,6 +1,7 @@
 import { RenderScope } from '../viewer/render-scope';
 import type { DiagramSource } from '../viewer/source';
 import type { SourceEditorSessions } from '../viewer/source-editor-sessions';
+import type { ViewerSettings } from '../viewer/settings';
 
 export interface EditorScopeOwner {
   isActive(): boolean;
@@ -8,6 +9,7 @@ export interface EditorScopeOwner {
   add(scope: RenderScope): void;
   remove(scope: RenderScope): void;
   editorSessions?: SourceEditorSessions;
+  settings?: () => ViewerSettings;
 }
 
 /** One editor view owns one render scope. It only wraps SVGs inside existing native Mermaid islands. */
@@ -25,7 +27,7 @@ export class LivePreviewScope {
     this.sourcePath = sourcePath;
     // Native widgets can render asynchronously after a CM update. RenderScope watches only this
     // editor's content subtree and changes only the SVG's Mermaid parent, never the CM widget root.
-    this.scope = new RenderScope(this.contentDOM, (href, newLeaf) => this.owner.openLink(href, this.sourcePath, newLeaf), this.sourceFor, this.owner.editorSessions);
+    this.scope = new RenderScope(this.contentDOM, (href, newLeaf) => this.owner.openLink(href, this.sourcePath, newLeaf), this.sourceFor, this.owner.editorSessions, this.owner.settings);
     this.owner.add(this.scope);
   }
   private clear(): void {

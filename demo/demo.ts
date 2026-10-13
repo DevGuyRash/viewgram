@@ -8,11 +8,34 @@ import sequence from '../fixtures/sequence.mmd';
 import { RenderScope } from '../src/viewer/render-scope';
 import { DiagramViewer } from '../src/viewer/diagram';
 import { SourceEditor } from '../src/viewer/source-editor';
+import { SemanticHighlighter } from '../src/viewer/semantics';
 import { SourceEditorSessions } from '../src/viewer/source-editor-sessions';
 import type { DiagramSource } from '../src/viewer/source';
 import { waitForViewportReady } from '../src/viewer/readiness';
+import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from '../src/viewer/settings';
 
 const scopes: RenderScope[] = [];
+let viewerSettings = { ...DEFAULT_SETTINGS };
+function setSettings(changes: Partial<ViewerSettings>): void {
+  viewerSettings = readSettings({ ...viewerSettings, ...changes });
+  for (const scope of scopes) scope.updateSettings(viewerSettings);
+  for (const key of ['background', 'backgroundSpacing', 'initialFit', 'zoomStep', 'hoverHighlighting', 'lineHitWidth', 'showHints'] as const) {
+    const control = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#setting-${key}`);
+    if (!control) continue;
+    if (control instanceof HTMLInputElement && control.type === 'checkbox') control.checked = Boolean(viewerSettings[key]);
+    else control.value = String(viewerSettings[key]);
+  }
+}
+for (const key of ['background', 'backgroundSpacing', 'initialFit', 'zoomStep', 'hoverHighlighting', 'lineHitWidth', 'showHints'] as const) {
+  const control = document.querySelector<HTMLInputElement | HTMLSelectElement>(`#setting-${key}`);
+  control?.addEventListener('change', () => {
+    const value = control instanceof HTMLInputElement && control.type === 'checkbox' ? control.checked :
+      control instanceof HTMLInputElement && control.type === 'number' ? Number(control.value) : control.value;
+    setSettings(readSettings({ ...viewerSettings, [key]: value }));
+  });
+}
+document.querySelector('#settings-reset')?.addEventListener('click', () => setSettings({ ...DEFAULT_SETTINGS }));
+setSettings({});
 const sessions = new SourceEditorSessions();
 const sources: Record<string, string> = {};
 const names = ['wide-flowchart', 'tall-flowchart', 'branching-flowchart', 'sequence'];
@@ -40,7 +63,7 @@ function mount(name: string, target: HTMLElement): RenderScope {
       container.replaceChildren(document.importNode(new DOMParser().parseFromString(rendered.svg, 'image/svg+xml').documentElement, true));
     },
   };
-  const scope = new RenderScope(container, (href) => { document.querySelector('#link-status')!.textContent = `Opened ${href}`; }, () => source, sessions);
+  const scope = new RenderScope(container, (href) => { document.querySelector('#link-status')!.textContent = `Opened ${href}`; }, () => source, sessions, () => viewerSettings);
   scopes.push(scope); return scope;
 }
 for (const name of names) mount(name, document.querySelector(`[data-fixture="${name}"]`)!);
@@ -56,7 +79,8 @@ document.querySelector('#mount')!.addEventListener('click', () => { if (!dynamic
 document.querySelector('#unmount')!.addEventListener('click', () => { dynamicScope?.dispose(); dynamicScope = undefined; dynamic.replaceChildren(); });
 Object.assign(window, {
   demo: {
-    scopes, sources, sessions, mount, DiagramViewer, RenderScope, SourceEditor, SourceEditorSessions, EditorView,
+    scopes, sources, sessions, mount, DiagramViewer, RenderScope, SourceEditor, SourceEditorSessions, SemanticHighlighter, EditorView,
+    DEFAULT_SETTINGS, readSettings, setSettings, getSettings: () => ({ ...viewerSettings }),
     disposeAll: () => { sessions.dispose(); scopes.forEach(scope => scope.dispose()); },
     ready: true,
   },
@@ -108,7 +132,7 @@ async function attachTypeViewer(result: TypeResult): Promise<TypeResult> {
      const rendered = await mermaid.render(`taxonomy_edit_${++renderCount}`,next);
      current=next; host.replaceChildren(document.importNode(new DOMParser().parseFromString(rendered.svg,'image/svg+xml').documentElement,true));
    },
- }), sessions);
+ }), sessions, () => viewerSettings);
  scopes.push(taxonomyScope);
  const root=host.querySelector<HTMLElement>('.kmv-viewer');
  if(!root){result.viewer='fail';result.message='Native SVG has no usable dimensions or was not wrapped.';return result;}

@@ -9,8 +9,13 @@ interface Window {
     DiagramViewer: typeof import('../src/viewer/diagram').DiagramViewer;
     RenderScope: typeof import('../src/viewer/render-scope').RenderScope;
     SourceEditor: typeof import('../src/viewer/source-editor').SourceEditor;
+    SemanticHighlighter: typeof import('../src/viewer/semantics').SemanticHighlighter;
     SourceEditorSessions: typeof import('../src/viewer/source-editor-sessions').SourceEditorSessions;
     EditorView: typeof import('@codemirror/view').EditorView;
+    DEFAULT_SETTINGS: typeof import('../src/viewer/settings').DEFAULT_SETTINGS;
+    readSettings: typeof import('../src/viewer/settings').readSettings;
+    setSettings(changes: Partial<import('../src/viewer/settings').ViewerSettings>): void;
+    getSettings(): import('../src/viewer/settings').ViewerSettings;
     disposeAll(): void;
     ready: boolean;
   };
