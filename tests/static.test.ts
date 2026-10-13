@@ -11,11 +11,12 @@ test('component CSS avoids expensive selectors and has higher overflow specifici
  assert.ok(css.includes('.kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport'));
  assert.ok(css.includes('overflow: hidden !important'));
 });
-test('public plugin name and runtime identity are generic before installation',()=>{
+test('private plugin identity is namespaced and its installation path is documented',()=>{
  const manifest=JSON.parse(readFileSync('manifest.json','utf8'));
- assert.equal(manifest.id,'mermaid-viewer');assert.equal(manifest.name,'Mermaid Viewer');
- assert.ok(readFileSync('docs/PLACEMENT.md','utf8').includes('<vault>/.obsidian/plugins/mermaid-viewer/'));
- assert.ok(readFileSync('scripts/prepare-scratch.mjs','utf8').includes("join(target,'.obsidian','plugins','mermaid-viewer')"));
+ assert.equal(manifest.id,'devguyrash-mermaid-viewer');assert.equal(manifest.name,'Mermaid Viewer');
+ assert.equal(manifest.author,'DevGuyRash');assert.equal(manifest.version,'0.1.0');
+ assert.equal(JSON.parse(readFileSync('package.json','utf8')).name,'obsidian-mermaid-viewer');
+ assert.ok(readFileSync('docs/PLACEMENT.md','utf8').includes('<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/'));
 });
 
 test('Live Preview uses public view lifecycle and keeps host CodeMirror external',()=>{
