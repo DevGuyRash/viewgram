@@ -86,7 +86,7 @@ test('real wheel input pans, modifier zooms, and the bottom boundary releases no
 
 type LabelRegion = { x: number; y: number; width: number; height: number };
 async function nativeGeometry(root: Locator) {
-  return root.locator('svg').evaluate(svg => {
+  return root.locator('.kmv-surface > svg').evaluate(svg => {
     const native = svg as SVGSVGElement, viewBox = native.viewBox.baseVal;
     const label = native.querySelector('.nodeLabel')!;
     const box = label.getBoundingClientRect(), inverse = native.getScreenCTM()!.inverse();
@@ -116,7 +116,7 @@ for (const theme of ['light', 'dark-filter'] as const) test(`SVG, PNG, JPG and W
   await page.addStyleTag({ content: '.theme-dark .mermaid > svg { filter: invert(100%) hue-rotate(180deg) saturate(1.25); }' });
   await page.evaluate(dark => { document.body.classList.toggle('theme-dark', dark); document.body.classList.toggle('theme-light', !dark); }, theme === 'dark-filter');
   const root = fixture(page, 'branching-flowchart'), native = await nativeGeometry(root);
-  const original = await root.locator('svg').evaluate(svg => { (window as any).exportOriginal = svg; return svg.outerHTML; });
+  const original = await root.locator('.kmv-surface > svg').evaluate(svg => { (window as any).exportOriginal = svg; return svg.outerHTML; });
   const results = [];
   for (const [format, mime] of [['svg', 'image/svg+xml'], ['png', 'image/png'], ['jpg', 'image/jpeg'], ['webp', 'image/webp']] as const) {
     const pending = page.waitForEvent('download'); await action(root, `Save diagram as ${format.toUpperCase()}`);
@@ -137,8 +137,8 @@ for (const theme of ['light', 'dark-filter'] as const) test(`SVG, PNG, JPG and W
     results.push({ format, mime, bytes: bytes.length, ...pixels });
     await expect(root.locator('.kmv-action-status')).toContainText(`Download requested: diagram.${format}`);
   }
-  expect(await root.locator('svg').evaluate(svg => svg === (window as any).exportOriginal)).toBe(true);
-  expect(await root.locator('svg').evaluate(svg => svg.outerHTML)).toBe(original);
+  expect(await root.locator('.kmv-surface > svg').evaluate(svg => svg === (window as any).exportOriginal)).toBe(true);
+  expect(await root.locator('.kmv-surface > svg').evaluate(svg => svg.outerHTML)).toBe(original);
   const runtime = { chromium: page.context().browser()?.version(), playwright: JSON.parse(await readFile('node_modules/@playwright/test/package.json', 'utf8')).version };
   await writeFile(`evidence/exports/${theme}-receipt.json`, JSON.stringify({ theme, runtime, native, results }, null, 2));
   await test.info().attach('decoded-image-evidence', { body: JSON.stringify({ theme, native, results }), contentType: 'application/json' });
