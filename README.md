@@ -29,11 +29,11 @@ Source checkout belongs outside a vault. The later plugin destination is `<vault
 
 ## Current status
 
-The upgrade is implemented against the exact published `119b659a5097336d0cb4305faeb7d3250c53ebed` source tree recovered through a verified source transfer. Focused DOM/source/export tests and build/typecheck results are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md).
+The upgrade is implemented against the exact published `119b659a5097336d0cb4305faeb7d3250c53ebed` source tree and the verified Library v2 checkpoint. Local validation passed 94 Node checks, TypeScript, plugin/demo builds and the development parser taxonomy. All 36 browser cases have passing evidence across the full run and the affected semantic rerun. The exact results and runtime are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md).
 
-Actual browser pixels, canvas exports and native Obsidian source updates remain unverified for this revision: the cloud browser process could not launch due to a socket permission denial. A passing emulated DOM test is not native/UI acceptance. Mica compatibility, real mobile, native relative links/popouts, embeds and performance remain unqualified. No live rollout is implied.
+Chromium verified gestures, source editing in the demo, semantic hover, decoded SVG/PNG/JPG/WebP label pixels, and allowed clipboard readback. Native Obsidian scratch qualification remains pending, including actual note writes, Live Preview undo, renderer compatibility and host lifecycle behavior. Mica compatibility, real mobile, native relative links/popouts, embeds and performance remain unqualified. No real vault has been updated.
 
-## Tests and demo, for the later validation phase
+## Tests and demo
 
 The test sources are included for continuity, but are not an automatic install/build hook.
 
