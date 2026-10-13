@@ -5,7 +5,7 @@ async function geometry(locator: ReturnType<typeof fixture>) {
  await expect(locator).toHaveAttribute('data-ready','true');
  await expect.poll(async () => Number(await locator.getAttribute('data-scale'))).toBeGreaterThan(0);
  return locator.evaluate(root=>{
-  const svg=root.querySelector('svg')!; const viewport=root.querySelector('.kmv-viewport')!;
+  const svg=root.querySelector<SVGSVGElement>('.kmv-surface > svg')!; const viewport=root.querySelector('.kmv-viewport')!;
   const a=svg.getBoundingClientRect(),b=viewport.getBoundingClientRect();
   const v=svg.viewBox.baseVal;
   return {scale:Number((root as HTMLElement).dataset.scale),svg:{x:a.x,y:a.y,width:a.width,height:a.height},viewport:{x:b.x,y:b.y,width:b.width,height:b.height},native:{width:v.width,height:v.height},overflow:getComputedStyle(viewport).overflow};
@@ -69,11 +69,11 @@ test('modal fits both axes on every opening, independent from inline zoom',async
 });
 test('modal keeps original SVG identity and never adds duplicate IDs',async({page})=>{
  const root=fixture(page,'sequence');
- const before=await page.evaluate(()=>{(window as any).originalSVG=document.querySelector('[data-fixture="sequence"] svg');return document.querySelectorAll('[id]').length;});
+ const before=await page.evaluate(()=>{(window as any).originalSVG=document.querySelector('[data-fixture="sequence"] .mermaid > svg');return document.querySelectorAll('[id]').length;});
  await root.getByRole('button',{name:'Open diagram lightbox'}).click();
- expect(await page.evaluate(()=>document.querySelector('.kmv-dialog svg')===(window as any).originalSVG)).toBe(true);
+ expect(await page.evaluate(()=>document.querySelector('.kmv-dialog .kmv-surface > svg')===(window as any).originalSVG)).toBe(true);
  expect(await page.locator('[id]').count()).toBe(before);
- await page.keyboard.press('Escape');expect(await page.evaluate(()=>document.querySelector('[data-fixture="sequence"] svg')===(window as any).originalSVG)).toBe(true);
+ await page.keyboard.press('Escape');expect(await page.evaluate(()=>document.querySelector('[data-fixture="sequence"] .mermaid > svg')===(window as any).originalSVG)).toBe(true);
 });
 test('Escape, backdrop and rapid repeated open/close restore focus',async({page})=>{
  const expand=fixture(page,'wide-flowchart').getByRole('button',{name:'Open diagram lightbox'});
@@ -101,14 +101,14 @@ test('source render removed while modal open closes without resurrecting old SVG
  await expect(page.locator('.kmv-dialog')).toHaveCount(0);await expect(page.locator('[data-fixture="wide-flowchart"] svg')).toHaveCount(0);
 });
 test('component unload restores original SVG styling, listeners, and removes UI',async({page})=>{
- const original=await page.evaluate(()=>{const svg=document.querySelector('[data-fixture="sequence"] svg')!;(window as any).sameNode=svg;svg.addEventListener('verification',()=>{(window as any).verificationCount=((window as any).verificationCount||0)+1;});return svg.getAttribute('id');});
+ const original=await page.evaluate(()=>{const svg=document.querySelector('[data-fixture="sequence"] .mermaid > svg')!;(window as any).sameNode=svg;svg.addEventListener('verification',()=>{(window as any).verificationCount=((window as any).verificationCount||0)+1;});return svg.getAttribute('id');});
  await page.evaluate(()=>(window as any).demo.disposeAll());await expect(page.locator('.kmv-viewer')).toHaveCount(0);
- expect(await page.evaluate(()=>{const svg=document.querySelector('[data-fixture="sequence"] svg')!;svg.dispatchEvent(new Event('verification'));return svg===(window as any).sameNode&&(window as any).verificationCount===1;})).toBe(true);
- expect(await page.locator('[data-fixture="sequence"] svg').getAttribute('id')).toBe(original);
- expect(await page.locator('[data-fixture="sequence"] svg').getAttribute('style')).not.toContain('width: 100');
+ expect(await page.evaluate(()=>{const svg=document.querySelector('[data-fixture="sequence"] .mermaid > svg')!;svg.dispatchEvent(new Event('verification'));return svg===(window as any).sameNode&&(window as any).verificationCount===1;})).toBe(true);
+ expect(await page.locator('[data-fixture="sequence"] .mermaid > svg').getAttribute('id')).toBe(original);
+ expect(await page.locator('[data-fixture="sequence"] .mermaid > svg').getAttribute('style')).not.toContain('width: 100');
 });
 test('internal note links work without firing enclosing Mica edit gestures',async({page})=>{
- await page.evaluate(()=>{const host=document.querySelector('[data-fixture="wide-flowchart"]')!;host.addEventListener('dblclick',()=>{(window as any).micaEdits=((window as any).micaEdits||0)+1;});const a=document.createElementNS('http://www.w3.org/2000/svg','a');a.classList.add('internal-link');a.setAttribute('data-href','Test note');const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');rect.setAttribute('width','100');rect.setAttribute('height','40');a.append(rect);host.querySelector('svg')!.append(a);a.dispatchEvent(new MouseEvent('click',{bubbles:true}));host.querySelector('.kmv-viewport')!.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true}));});
+ await page.evaluate(()=>{const host=document.querySelector('[data-fixture="wide-flowchart"]')!;host.addEventListener('dblclick',()=>{(window as any).micaEdits=((window as any).micaEdits||0)+1;});const a=document.createElementNS('http://www.w3.org/2000/svg','a');a.classList.add('internal-link');a.setAttribute('data-href','Test note');const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');rect.setAttribute('width','100');rect.setAttribute('height','40');a.append(rect);host.querySelector('.kmv-surface > svg')!.append(a);a.dispatchEvent(new MouseEvent('click',{bubbles:true}));host.querySelector('.kmv-viewport')!.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true}));});
  await expect(page.locator('#link-status')).toHaveText('Opened Test note');expect(await page.evaluate(()=>(window as any).micaEdits||0)).toBe(0);
 });
 test('mobile layout, manual touch dragging and reduced-motion styles',async({page})=>{
@@ -149,20 +149,20 @@ test('all required diagram types keep original text and fit in the viewer',async
 
 test('type workbench offers original-versus-viewer comparison without source edits',async({page})=>{
  await page.locator('#taxonomy-select').selectOption('class-v2');await page.getByRole('button',{name:'Render original',exact:true}).click();
- await expect(page.locator('#taxonomy-preview svg')).toHaveCount(1);await expect(page.locator('#taxonomy-preview .kmv-viewer')).toHaveCount(0);
- const before=await page.locator('#taxonomy-preview svg').textContent();await page.getByRole('button',{name:'Attach viewer',exact:true}).click();await expect(page.locator('#taxonomy-preview .kmv-viewer')).toHaveAttribute('data-mode','width');
- expect(await page.locator('#taxonomy-preview svg').textContent()).toBe(before);
+ await expect(page.locator('#taxonomy-preview .mermaid > svg')).toHaveCount(1);await expect(page.locator('#taxonomy-preview .kmv-viewer')).toHaveCount(0);
+ const before=await page.locator('#taxonomy-preview .mermaid > svg').textContent();await page.getByRole('button',{name:'Attach viewer',exact:true}).click();await expect(page.locator('#taxonomy-preview .kmv-viewer')).toHaveAttribute('data-mode','width');
+ expect(await page.locator('#taxonomy-preview .mermaid > svg').textContent()).toBe(before);
 });
 
 test('native SVG dark filter survives wrapping, modal movement and light-dark transitions',async({page})=>{
  await page.addStyleTag({content:'.theme-dark .mermaid > svg { filter: invert(100%) hue-rotate(180deg) saturate(1.25); }'});
  await page.evaluate(()=>document.body.classList.add('theme-dark'));
  await page.locator('#taxonomy-select').selectOption('flowchart');await page.getByRole('button',{name:'Render original',exact:true}).click();
- const svg=page.locator('#taxonomy-preview svg');await expect(svg).toHaveCount(1);
+ const svg=page.locator('#taxonomy-preview .mermaid > svg');await expect(svg).toHaveCount(1);
  const originalFilter=await svg.evaluate(el=>getComputedStyle(el).filter);expect(originalFilter).toContain('invert');
  await page.getByRole('button',{name:'Attach viewer',exact:true}).click();const root=page.locator('#taxonomy-preview .kmv-viewer');await expect(root).toHaveAttribute('data-ready','true');
  await expect(svg).toHaveCSS('filter',originalFilter);await expect(root.locator('.kmv-surface')).toHaveCSS('filter','none');
- await root.getByRole('button',{name:'Open diagram lightbox'}).click();const modalSvg=page.locator('.kmv-dialog svg');await expect(modalSvg).toHaveCSS('filter',originalFilter);
+ await root.getByRole('button',{name:'Open diagram lightbox'}).click();const modalSvg=page.locator('.kmv-dialog .kmv-surface > svg');await expect(modalSvg).toHaveCSS('filter',originalFilter);
  await page.evaluate(()=>document.body.classList.replace('theme-dark','theme-light'));await expect(modalSvg).toHaveCSS('filter','none');
  await page.evaluate(()=>document.body.classList.replace('theme-light','theme-dark'));await expect(modalSvg).toHaveCSS('filter',originalFilter);
  await page.keyboard.press('Escape');await expect(svg).toHaveCSS('filter',originalFilter);
@@ -171,9 +171,9 @@ test('native SVG dark filter survives wrapping, modal movement and light-dark tr
 test('native presentation context does not override an explicit SVG filter',async({page})=>{
  await page.addStyleTag({content:'.theme-dark .mermaid > svg { filter: invert(100%); }'});await page.evaluate(()=>document.body.classList.add('theme-dark'));
  await page.locator('#taxonomy-select').selectOption('flowchart');await page.getByRole('button',{name:'Render original',exact:true}).click();
- await page.locator('#taxonomy-preview svg').evaluate(el=>(el as SVGSVGElement).style.filter='grayscale(1)');
+ await page.locator('#taxonomy-preview .mermaid > svg').evaluate(el=>(el as SVGSVGElement).style.filter='grayscale(1)');
  await page.getByRole('button',{name:'Attach viewer',exact:true}).click();const root=page.locator('#taxonomy-preview .kmv-viewer');await expect(root).toHaveAttribute('data-ready','true');
- await expect(root.locator('svg')).toHaveCSS('filter','grayscale(1)');await root.getByRole('button',{name:'Open diagram lightbox'}).click();await expect(page.locator('.kmv-dialog svg')).toHaveCSS('filter','grayscale(1)');await page.keyboard.press('Escape');
+ await expect(root.locator('.kmv-surface > svg')).toHaveCSS('filter','grayscale(1)');await root.getByRole('button',{name:'Open diagram lightbox'}).click();await expect(page.locator('.kmv-dialog .kmv-surface > svg')).toHaveCSS('filter','grayscale(1)');await page.keyboard.press('Escape');
 });
 
 test('demo type selector stays inside a narrow viewport without hiding page overflow',async({page})=>{
