@@ -33,9 +33,7 @@ export function mermaidBlocks(document: string): SourceSnapshot[] {
 export function locateSource(document: string, hint: SourceHint = {}): SourceSnapshot {
   let candidates = mermaidBlocks(document);
   if (hint.line !== undefined) {
-    const exact = candidates.filter(block => block.line === hint.line || (block.line <= hint.line! && document.slice(0, block.end).split('\n').length - 1 >= hint.line!));
-    if (exact.length === 1) return exact[0]!;
-    candidates = candidates.filter(block => block.line >= hint.line! && block.line <= (hint.endLine ?? hint.line!));
+    candidates = candidates.filter(block => block.line <= (hint.endLine ?? hint.line!) && document.slice(0, block.end).split('\n').length - 1 >= hint.line!);
   }
   if (hint.ordinal !== undefined && candidates[hint.ordinal]) return candidates[hint.ordinal]!;
   if (candidates.length !== 1) throw new Error('Cannot identify this Mermaid block safely. Open its source in the note editor.');
@@ -74,7 +72,10 @@ export function labelEdit(source: string, target: SemanticTarget): LabelEdit | n
     if (char === '"') { quoted = !quoted; return ' '; }
     return quoted ? ' ' : char;
   }).join('');
-  const expression = new RegExp(`(^|[^\\w])${escaped(target.id)}(?=\\s*[\\[({>])`, 'gm');
+  // A declaration can follow whitespace, a statement separator or an arrowhead.
+  // Other punctuation may belong to an identifier (for example X-A or X.A).
+  // Unrecognized boundaries fall back to full-source editing instead of targeting a suffix.
+  const expression = new RegExp(`(^|[\\s;>])${escaped(target.id)}(?=\\s*[\\[({>])`, 'gm');
   const shapes: [string, string][] = [['[[', ']]'], ['[(', ')]'], ['([', '])'], ['((', '))'], ['{{', '}}'], ['[/', '/]'], ['[\\', '\\]'], ['[/', '\\]'], ['[\\', '/]'], ['[', ']'], ['(', ')'], ['{', '}'], ['>', ']']];
   const matches = [...visible.matchAll(expression)];
   if (matches.length !== 1) return null;
