@@ -103,3 +103,7 @@ test('duplicate renderer edge IDs leave their ambiguous labels locally highlight
   const {svg,get,hover}=setup(graph+'<path id="duplicate" class="flowchart-link" data-from="A" data-to="B" marker-end="url(#arrow)"/><path id="duplicate" class="flowchart-link" data-from="C" data-to="D" marker-end="url(#arrow)"/><g class="edgeLabel" id="ambiguous-label" data-id="duplicate"><text>Ambiguous</text></g>');
   const h=new SemanticHighlighter(svg);hover('ambiguous-label');assert.equal(svg.querySelectorAll('.node.kmv-semantic-related').length,0);assert.ok(get('ambiguous-label').classList.contains('kmv-semantic-active'));h.dispose();
 });
+test('normal native thickness tokens are solid while explicit thick tokens stay thick', () => {
+  const {svg,get}=setup('<path id="normal" class="edge-thickness-normal edge-pattern-solid transition" stroke-width="1.5"/><path id="thick" class="edge-thickness-thick edge-pattern-solid transition" stroke-width="3.5"/>','stateDiagram');
+  const h=new SemanticHighlighter(svg);assert.equal(get('normal').getAttribute('data-kmv-line'),'solid');assert.equal(get('thick').getAttribute('data-kmv-line'),'thick');assert.equal(get('normal').getAttribute('stroke-width'),'1.5');assert.equal(get('thick').getAttribute('stroke-width'),'3.5');h.dispose();
+});
