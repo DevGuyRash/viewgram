@@ -12,13 +12,15 @@ async function geometry(locator: ReturnType<typeof fixture>) {
  });
 }
 test.beforeEach(async({page})=>ready(page));
-test('all four fixtures fit horizontally; tall diagram deliberately overflows vertically',async({page})=>{
+test('all four fixtures initially fit the whole diagram; explicit width fit keeps tall labels larger',async({page})=>{
  for(const name of ['wide-flowchart','tall-flowchart','branching-flowchart','sequence']) {
   const g=await geometry(fixture(page,name));
   expect(g.svg.width).toBeLessThanOrEqual(g.viewport.width-31);
+  expect(g.svg.height).toBeLessThanOrEqual(g.viewport.height-31);
   expect(g.overflow).toBe('hidden');
  }
- const tall=await geometry(fixture(page,'tall-flowchart'));
+ const tallRoot=fixture(page,'tall-flowchart');await tallRoot.locator('.kmv-viewport').focus();await tallRoot.locator('.kmv-viewport').press('w');await expect(tallRoot).toHaveAttribute('data-mode','width');
+ const tall=await geometry(tallRoot);
  expect(tall.svg.height).toBeGreaterThan(tall.viewport.height);
  expect(tall.svg.y-tall.viewport.y).toBeCloseTo(16,1);
 });
@@ -51,7 +53,7 @@ test('mouse drag pans with grab cursor and no source mutation',async({page})=>{
 test('keyboard panning and fit/native shortcuts only affect focused viewport',async({page})=>{
  const root=fixture(page,'wide-flowchart'),vp=root.locator('.kmv-viewport');await vp.focus();await vp.press('0');await expect(root).toHaveAttribute('data-scale','1');
  const before=await geometry(root);await vp.press('ArrowRight');const after=await geometry(root);expect(after.svg.x).toBeLessThan(before.svg.x);
- await vp.press('f');await expect(root).toHaveAttribute('data-mode','width');
+ await vp.press('f');await expect(root).toHaveAttribute('data-mode','contain');
 });
 test('modal fits both axes on every opening, independent from inline zoom',async({page})=>{
  for(const name of ['wide-flowchart','tall-flowchart','branching-flowchart','sequence']) {
@@ -69,11 +71,12 @@ test('modal fits both axes on every opening, independent from inline zoom',async
 });
 test('modal keeps original SVG identity and never adds duplicate IDs',async({page})=>{
  const root=fixture(page,'sequence');
- const before=await page.evaluate(()=>{(window as any).originalSVG=document.querySelector('[data-fixture="sequence"] .mermaid > svg');return document.querySelectorAll('[id]').length;});
+ const before=await page.evaluate(()=>{(window as any).originalSVG=document.querySelector('[data-fixture="sequence"] .mermaid > svg');const svg=document.querySelector('[data-fixture="sequence"] .mermaid > svg')!;return [svg.id,...[...svg.querySelectorAll('[id]')].map(el=>el.id)].filter(Boolean);});
  await root.getByRole('button',{name:'Open diagram lightbox'}).click();
  expect(await page.evaluate(()=>document.querySelector('.kmv-dialog .kmv-surface > svg')===(window as any).originalSVG)).toBe(true);
- expect(await page.locator('[id]').count()).toBe(before);
+ expect(await page.evaluate(ids=>ids.map(id=>document.querySelectorAll(`#${CSS.escape(id)}`).length),before)).toEqual(before.map(()=>1));
  await page.keyboard.press('Escape');expect(await page.evaluate(()=>document.querySelector('[data-fixture="sequence"] .mermaid > svg')===(window as any).originalSVG)).toBe(true);
+ expect(await page.evaluate(ids=>ids.map(id=>document.querySelectorAll(`#${CSS.escape(id)}`).length),before)).toEqual(before.map(()=>1));
 });
 test('Escape, backdrop and rapid repeated open/close restore focus',async({page})=>{
  const expand=fixture(page,'wide-flowchart').getByRole('button',{name:'Open diagram lightbox'});
@@ -82,7 +85,7 @@ test('Escape, backdrop and rapid repeated open/close restore focus',async({page}
 });
 test('hidden-to-visible initializes fit; width resize refits but native mode stays 100%',async({page})=>{
  await page.getByRole('button',{name:'Show / hide deferred diagram'}).click();const hidden=page.locator('#hidden-content .kmv-viewer');
- await expect(hidden).toHaveAttribute('data-mode','width');const g=await geometry(hidden);expect(g.scale).toBeGreaterThan(0);expect(g.svg.width).toBeLessThanOrEqual(g.viewport.width-31);
+ await expect(hidden).toHaveAttribute('data-mode','contain');const g=await geometry(hidden);expect(g.scale).toBeGreaterThan(0);expect(g.svg.width).toBeLessThanOrEqual(g.viewport.width-31);
  const root=fixture(page,'wide-flowchart');const previous=await geometry(root);await page.setViewportSize({width:900,height:900});await expect.poll(async()=>(await geometry(root)).scale).not.toBe(previous.scale);
  await root.getByRole('button',{name:'Native size (100%)',exact:true}).click();await page.setViewportSize({width:1100,height:900});await expect(root).toHaveAttribute('data-scale','1');
 });
@@ -150,7 +153,7 @@ test('all required diagram types keep original text and fit in the viewer',async
 test('type workbench offers original-versus-viewer comparison without source edits',async({page})=>{
  await page.locator('#taxonomy-select').selectOption('class-v2');await page.getByRole('button',{name:'Render original',exact:true}).click();
  await expect(page.locator('#taxonomy-preview .mermaid > svg')).toHaveCount(1);await expect(page.locator('#taxonomy-preview .kmv-viewer')).toHaveCount(0);
- const before=await page.locator('#taxonomy-preview .mermaid > svg').textContent();await page.getByRole('button',{name:'Attach viewer',exact:true}).click();await expect(page.locator('#taxonomy-preview .kmv-viewer')).toHaveAttribute('data-mode','width');
+ const before=await page.locator('#taxonomy-preview .mermaid > svg').textContent();await page.getByRole('button',{name:'Attach viewer',exact:true}).click();await expect(page.locator('#taxonomy-preview .kmv-viewer')).toHaveAttribute('data-mode','contain');
  expect(await page.locator('#taxonomy-preview .mermaid > svg').textContent()).toBe(before);
 });
 

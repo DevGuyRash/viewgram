@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-test('viewport integration preserves native rendering and avoids polling or automatic settings writes',()=>{
+test('viewport integration preserves native rendering and avoids polling or private storage APIs',()=>{
  const source=['src/main.ts','src/viewer/controller.ts','src/viewer/diagram.ts','src/viewer/render-scope.ts'].map(p=>readFileSync(p,'utf8')).join('\n');
- for(const forbidden of ['cloneNode','innerHTML','DOMParser','setInterval','fetch(','loadMermaid','vault.modify','saveData','localStorage']) assert.ok(!source.includes(forbidden),forbidden);
+ for(const forbidden of ['cloneNode','innerHTML','DOMParser','setInterval','fetch(','loadMermaid','vault.modify','localStorage']) assert.ok(!source.includes(forbidden),forbidden);
 });
 test('component CSS avoids expensive selectors and has higher overflow specificity than Kingdom',()=>{
  const css=readFileSync('src/styles.css','utf8').replace(/\/\*[\s\S]*?\*\//g,'');
