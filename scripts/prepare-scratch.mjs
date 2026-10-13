@@ -1,17 +1,37 @@
 /** Run only in an authorized accepting environment; never points at an existing vault. */
-import { mkdir, copyFile, readFile, writeFile, access } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, writeFile, access, realpath } from 'node:fs/promises';
 import { resolve, isAbsolute, join, dirname } from 'node:path';
 const supplied=process.argv[2];
 if(!supplied || !isAbsolute(supplied)) throw new Error('Pass a NEW absolute scratch-vault directory. Existing directories are refused.');
 const target=resolve(supplied);
 try { await access(target); throw new Error('Target already exists; refusing to alter it. Choose a new isolated scratch path.'); }
 catch(error){if(error.code!=='ENOENT')throw error;}
-for (let ancestor=dirname(target); ; ancestor=dirname(ancestor)) {
+async function outsideVault(parent) {
+ for (let ancestor=parent; ; ancestor=dirname(ancestor)) {
   try { await access(join(ancestor,'.obsidian')); throw new Error('Refusing a scratch vault inside an existing Obsidian vault.'); }
   catch(error){if(error.code!=='ENOENT')throw error;}
   if(dirname(ancestor)===ancestor)break;
+ }
 }
-const plugin=join(target,'.obsidian','plugins','mermaid-viewer');
+await outsideVault(dirname(target));
+let existingParent=dirname(target);
+for (;;) {
+ try { existingParent=await realpath(existingParent); break; }
+ catch(error){if(error.code!=='ENOENT')throw error;}
+ const parent=dirname(existingParent);
+ if(parent===existingParent) throw new Error('Cannot resolve a safe scratch-vault parent.');
+ existingParent=parent;
+}
+await outsideVault(existingParent);
+const sourceManifest=JSON.parse(await readFile('manifest.json','utf8'));
+const builtManifest=JSON.parse(await readFile(join('dist','manifest.json'),'utf8'));
+if(!sourceManifest || !builtManifest || typeof sourceManifest!=='object' || typeof builtManifest!=='object' || Array.isArray(sourceManifest) || Array.isArray(builtManifest)) throw new Error('Source and built manifests must describe a plugin identity.');
+const pluginId=builtManifest.id;
+if(typeof pluginId!=='string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pluginId)) throw new Error('Built manifest contains an unsafe plugin ID.');
+for(const field of ['id','name','author','version']) {
+ if(typeof sourceManifest[field]!=='string' || !sourceManifest[field].trim() || sourceManifest[field]!==builtManifest[field]) throw new Error('Built plugin identity does not match the source manifest. Run npm run build before preparing a scratch vault.');
+}
+const plugin=join(target,'.obsidian','plugins',pluginId);
 await mkdir(plugin,{recursive:true});
 for(const file of ['main.js','manifest.json','styles.css']) await copyFile(join('dist',file),join(plugin,file));
 let note='# Mermaid viewer acceptance\n\nSynthetic fixtures only. Enable Mermaid Viewer manually in this scratch vault.\n\n';

@@ -2,7 +2,7 @@
 
 Private source for an Obsidian plugin that adds native-scale navigation, semantic interaction, source editing and image export to existing Mermaid SVGs.
 
-Plugin ID: `mermaid-viewer`. Repository name: `obsidian-mermaid-viewer`.
+Plugin ID: `devguyrash-mermaid-viewer` (formerly `mermaid-viewer`). Display name: Mermaid Viewer. Author: DevGuyRash. Repository and npm package name: `obsidian-mermaid-viewer`.
 
 ## Implementation
 
@@ -25,11 +25,11 @@ npm run build
 
 Only `dist/main.js`, `dist/manifest.json` and `dist/styles.css` are runtime artifacts. Obsidian and CodeMirror are supplied by the host, not bundled. The demo's Mermaid dependency is development-only.
 
-Source checkout belongs outside a vault. The later plugin destination is `<vault>/.obsidian/plugins/mermaid-viewer/`; preserve any `data.json`. A build does not install or enable anything. See [placement](docs/PLACEMENT.md).
+Source checkout belongs outside a vault. After native scratch qualification, a later installation uses `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`. The ID change does not rename or copy an old `mermaid-viewer` folder, its data or its enabled state. Preserve any proven legacy private data in its original folder or backup; this plugin has no settings load/save, so no settings migration is needed or performed automatically. A build does not install or enable anything. See [placement](docs/PLACEMENT.md).
 
 ## Current status
 
-The upgrade is implemented against the exact published `119b659a5097336d0cb4305faeb7d3250c53ebed` source tree and the verified Library v2 checkpoint. Local validation passed 94 Node checks, TypeScript, plugin/demo builds and the development parser taxonomy. All 36 browser cases have passing evidence across the full run and the affected semantic rerun. The exact results and runtime are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md).
+The upgrade is implemented against the exact published `119b659a5097336d0cb4305faeb7d3250c53ebed` source tree and the verified Library v2 checkpoint. Local validation passed 99 Node checks, including the namespaced identity and scratch staging guards, plus TypeScript and plugin/demo builds. The development parser taxonomy and all 36 browser cases retain their prior passing evidence; the ID change leaves the runtime JavaScript, CSS and standalone demo byte-identical. The exact results and runtime are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md).
 
 Chromium verified gestures, source editing in the demo, semantic hover, decoded SVG/PNG/JPG/WebP label pixels, and allowed clipboard readback. Native Obsidian scratch qualification remains pending, including actual note writes, Live Preview undo, renderer compatibility and host lifecycle behavior. Mica compatibility, real mobile, native relative links/popouts, embeds and performance remain unqualified. No real vault has been updated.
 
