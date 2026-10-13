@@ -6,7 +6,7 @@ When the validation phase is authorized, use a new isolated scratch vault and sy
 
 1. Build the source, then stage the three artifacts in the new scratch vault under `.obsidian/plugins/devguyrash-mermaid-viewer/`.
 2. Compare original rendering with the viewer disabled against the same sources with it enabled.
-3. Check every required type variant, width-fit, true native 100%, pan/recenter, modal fit, close/focus and unchanged source bytes during navigation. Separately verify explicit source saves and Live Preview undo using [upgrade acceptance](UPGRADE-VERIFICATION.md).
+3. Check every required type variant, primary whole-chart fit, separate width-fit, true native 100%, pan/recenter, modal fit, close/focus and unchanged source bytes during navigation. Separately verify explicit source saves and Live Preview undo using [upgrade acceptance](UPGRADE-VERIFICATION.md).
 4. Check Live Preview/Reading/Source transitions, async widgets, virtualized removal, source edits, file changes and plugin unload/re-enable.
 5. Check native dark/light presentation, live theme changes, explicit filters and alternate Mermaid host markup.
 6. Rerun the prepared browser cases, including narrow layout and first-paint geometry. Emulated DOM tests do not prove native integration or visual correctness.
@@ -14,4 +14,4 @@ When the validation phase is authorized, use a new isolated scratch vault and sy
 
 The `info` diagnostic may render without a usable viewBox or explicit native dimensions and is deliberately left unwrapped. Do not replace the host's Mermaid engine to alter compatibility results.
 
-A later live installation must pass the native scratch gates. Use `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`. Back up prior artifacts in that namespace, copy only `main.js`, `manifest.json` and `styles.css`, preserve `data.json`, and leave note source, other plugins and vault-wide CSS unchanged. Roll back by restoring the previous three artifacts and previous enabled state in that namespace. If an old `mermaid-viewer` folder is present, do not rename or copy it or change its data or enabled state. Keep proven legacy private data in its original folder or backup; there is no settings load/save and no automatic migration.
+A later live installation must pass the native scratch gates. Use `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`. Back up prior artifacts in that namespace, copy only `main.js`, `manifest.json` and `styles.css`, preserve `data.json`, and leave note source, other plugins and vault-wide CSS unchanged. Roll back by restoring the previous three artifacts and previous enabled state in that namespace. If an old `mermaid-viewer` folder is present, do not rename or copy it or change its data or enabled state. Keep proven legacy private data in its original folder or backup; settings save only in the new namespace and no automatic migration runs.
