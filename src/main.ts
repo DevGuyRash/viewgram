@@ -2,6 +2,7 @@ import { MarkdownRenderChild, Plugin, type MarkdownPostProcessorContext } from '
 import { RenderScope } from './viewer/render-scope';
 import { readingSource } from './editor/source-bridge';
 import { livePreviewExtension } from './editor/live-preview';
+import { SourceEditorSessions } from './viewer/source-editor-sessions';
 
 class MermaidRenderChild extends MarkdownRenderChild {
   private scope?: RenderScope;
@@ -9,7 +10,7 @@ class MermaidRenderChild extends MarkdownRenderChild {
   onload(): void {
     this.scope = new RenderScope(this.containerEl, (href, newLeaf) => {
       void this.plugin.app.workspace.openLinkText(href, this.context.sourcePath, newLeaf);
-    }, svg => readingSource(this.plugin.app, this.context, this.containerEl, svg));
+    }, svg => readingSource(this.plugin.app, this.context, this.containerEl, svg, () => this.plugin.isActive), this.plugin.editorSessions);
     this.plugin.scopes.add(this.scope);
   }
   onunload(): void {
@@ -20,7 +21,9 @@ class MermaidRenderChild extends MarkdownRenderChild {
 export default class MermaidViewer extends Plugin {
   // An active-instance registry for unload only. No cached source, SVG or viewport state.
   readonly scopes = new Set<RenderScope>();
+  readonly editorSessions = new SourceEditorSessions();
   private active = false;
+  get isActive(): boolean { return this.active; }
   onload(): void {
     this.active = true;
     this.registerEditorExtension(livePreviewExtension({
@@ -28,6 +31,7 @@ export default class MermaidViewer extends Plugin {
       openLink: (href, sourcePath, newLeaf) => { void this.app.workspace.openLinkText(href, sourcePath, newLeaf); },
       add: scope => this.scopes.add(scope),
       remove: scope => this.scopes.delete(scope),
+      editorSessions: this.editorSessions,
     }));
     this.registerMarkdownPostProcessor((el, ctx) => {
       if (el.closest('.kmv-viewer, .kmv-dialog')) return;
@@ -35,5 +39,5 @@ export default class MermaidViewer extends Plugin {
       ctx.addChild(new MermaidRenderChild(el, this, ctx));
     }, 1000);
   }
-  onunload(): void { this.active = false; for (const scope of this.scopes) scope.dispose(); this.scopes.clear(); }
+  onunload(): void { this.active = false; this.editorSessions.dispose(); for (const scope of this.scopes) scope.dispose(); this.scopes.clear(); }
 }

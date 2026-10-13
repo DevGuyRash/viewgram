@@ -1,8 +1,9 @@
 import { center, constrain, fitted, nativeSize, parsePercent, resized, validSize, zoomAt, type Size, type ViewState } from './math';
 import { Lifetime } from './lifetime';
 
-export interface ViewerActionResult { message: string; fallback?: { label: string; run(): void } }
-export interface ViewerAction { text: string; label: string; run(): Promise<ViewerActionResult | void> | ViewerActionResult | void }
+export type ViewerActionIcon = 'edit' | 'copy' | 'image' | 'download';
+export interface ViewerActionResult { message: string; feedback?: 'success' | 'warning'; fallback?: { label: string; run(): void } }
+export interface ViewerAction { text: string; label: string; icon?: ViewerActionIcon; run(): Promise<ViewerActionResult | void> | ViewerActionResult | void }
 export interface ViewerOptions {
   mode: 'width' | 'contain';
   label?: string;
@@ -15,6 +16,20 @@ const ZOOM_PRESETS = [10, 25, 50, 75, 100, 125, 150, 200, 300, 400];
 const interactive = 'a, summary, button, input, textarea, select, [role="button"], [role="link"], [contenteditable="true"]';
 function element(doc: Document, tag: string, className: string, text?: string): HTMLElement {
   const el = doc.createElement(tag); el.className = className; if (text) el.textContent = text; return el;
+}
+function controlIcon(doc: Document, name: ViewerActionIcon | 'check'): SVGSVGElement {
+  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('kmv-control-icon'); svg.dataset.icon = name;
+  for (const [key, value] of Object.entries({ viewBox: '0 0 24 24', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false' })) svg.setAttribute(key, value);
+  const paths: Record<ViewerActionIcon | 'check', string> = {
+    edit: 'M15 5l4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z',
+    copy: 'M8 8h12v12H8zM16 8V4H4v12h4',
+    image: 'M3 3h18v18H3zM3 17l6-6 4 4 3-3 5 5M16 7h.01',
+    download: 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
+    check: 'M5 12l4 4L19 6',
+  };
+  const path = doc.createElementNS(svg.namespaceURI, 'path'); path.setAttribute('d', paths[name]); svg.append(path);
+  return svg;
 }
 export class ViewportController {
   readonly root: HTMLElement;
@@ -35,10 +50,14 @@ export class ViewportController {
   private zoomOut: HTMLButtonElement;
   private zoomIn: HTMLButtonElement;
   private readonly win: Window;
-  private userHeight = false;
+  private manualHeight?: number;
   private heightObserver?: ResizeObserver;
-  private heightParent?: Element;
+  private heightParents = new Set<HTMLElement>();
   private zoomMenu: HTMLElement;
+  private actionEpoch = 0;
+  private actionFeedbackTimer?: number;
+  private resetActionFeedback?: () => void;
+  private finishResize?: () => void;
 
   constructor(readonly svg: SVGSVGElement, readonly options: ViewerOptions, native = nativeSize(svg)) {
     if (!native) throw new Error('SVG needs a valid viewBox or explicit native dimensions.');
@@ -70,25 +89,36 @@ export class ViewportController {
     hint.title = 'Hover a diagram element to see related items. Incoming, outgoing, bidirectional and undirected relations have distinct emphasis; theme filters can affect colors. Native line styles and arrowheads retain relationship type. Double-click an element to edit Mermaid source.';
     const actions = element(doc, 'div', 'kmv-actions');
     if (options.open) actions.append(this.button('Expand ↗', 'Open diagram lightbox', options.open));
-    const actionStatus = this.actionStatus = element(doc, 'div', 'kmv-action-status'); actionStatus.setAttribute('role', 'status');
+    const actionStatus = this.actionStatus = element(doc, 'div', 'kmv-action-status'); actionStatus.setAttribute('role', 'status'); actionStatus.setAttribute('aria-live', 'polite');
     if (options.actions?.length) {
       const menu = doc.createElement('details'); menu.className = 'kmv-tools';
-      const summary = doc.createElement('summary'); summary.className = 'kmv-button'; summary.textContent = 'Source & export';
+      const summary = doc.createElement('summary'); summary.className = 'kmv-button'; summary.title = 'Source & export';
+      summary.append(controlIcon(doc, 'download'), element(doc, 'span', 'kmv-control-label', 'Source & export'));
       const choices = element(doc, 'div', 'kmv-tool-menu');
       menu.append(summary, choices);
       for (const action of options.actions) {
         const button = this.button(action.text, action.label, () => {
-          menu.open = false; button.disabled = true; actionStatus.textContent = 'Working…';
-          void Promise.resolve().then(() => action.run()).then(result => {
-            if (this.lifetime.disposed) return;
+          if (button.disabled || this.lifetime.disposed) return;
+          const epoch = ++this.actionEpoch;
+          this.clearActionFeedback();
+          menu.open = false; summary.focus({ preventScroll: true }); button.disabled = true; button.setAttribute('aria-busy', 'true');
+          actionStatus.textContent = 'Working…';
+          void Promise.resolve().then(() => { if (!this.lifetime.disposed) return action.run(); }).then(result => {
+            if (this.lifetime.disposed || epoch !== this.actionEpoch) return;
             actionStatus.textContent = result?.message ?? '';
-            if (result?.fallback) actionStatus.append(this.button(result.fallback.label, result.fallback.label, result.fallback.run));
-          }, error => { if (!this.lifetime.disposed) actionStatus.textContent = error instanceof Error ? error.message : String(error); })
-            .finally(() => { button.disabled = false; });
+            if (result?.feedback === 'success' && !result.fallback) this.showActionSuccess(button, action.icon, summary, result.message);
+            if (result?.fallback) actionStatus.append(this.button(result.fallback.label, result.fallback.label, () => {
+              try { result.fallback!.run(); }
+              catch (error) { if (actionStatus.firstChild) actionStatus.firstChild.textContent = error instanceof Error ? error.message : String(error); }
+            }));
+          }, error => { if (!this.lifetime.disposed && epoch === this.actionEpoch) actionStatus.textContent = error instanceof Error ? error.message : String(error); })
+            .finally(() => { if (!this.lifetime.disposed) { button.disabled = false; button.removeAttribute('aria-busy'); } });
         });
+        button.replaceChildren(...(action.icon ? [controlIcon(doc, action.icon)] : []), element(doc, 'span', 'kmv-control-label', action.text));
         choices.append(button);
       }
-      this.lifetime.listen(doc, 'pointerdown', event => { if (!menu.contains(event.target as Node)) menu.open = false; });
+      this.lifetime.listen(menu, 'toggle', () => this.constrainMenus());
+      this.lifetime.listen(doc, 'pointerdown', event => { if (!menu.contains(event.target as Node)) menu.open = false; }, { capture: true });
       this.lifetime.listen(menu, 'keydown', ((event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); menu.open = false; summary.focus(); } }) as EventListener);
       actions.append(menu);
     }
@@ -110,6 +140,7 @@ export class ViewportController {
     this.zoomMenu.setAttribute('role', 'group');
     this.zoomMenu.setAttribute('aria-label', 'Zoom presets');
     const togglePresets = (): void => {
+      this.constrainMenus();
       this.zoomMenu.hidden = !this.zoomMenu.hidden;
       this.zoomInput.setAttribute('aria-expanded', String(!this.zoomMenu.hidden));
     };
@@ -123,7 +154,7 @@ export class ViewportController {
     this.lifetime.listen(this.zoomMenu, 'keydown', ((event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); this.closePresets(); this.zoomInput.focus(); } }) as EventListener);
     this.lifetime.listen(doc, 'pointerdown', event => {
       if (!zoomPicker.contains(event.target as Node)) this.closePresets();
-    });
+    }, { capture: true });
     row.append(
       this.button(options.mode === 'width' ? 'Fit width' : 'Fit diagram', options.mode === 'width' ? 'Fit width' : 'Fit diagram', () => this.fit()),
       this.button('100%', 'Native size (100%)', () => this.setZoom(1)),
@@ -142,7 +173,9 @@ export class ViewportController {
     this.state.mode = options.mode;
     if (options.mode === 'width') this.addResizeHandle();
     this.events();
-    this.lifetime.listen(this.win, 'resize', () => this.autoHeight(this.viewport.clientWidth));
+    const refreshHeight = (): void => { this.autoHeight(this.viewport.clientWidth); this.constrainMenus(); };
+    this.lifetime.listen(this.win, 'resize', refreshHeight);
+    if (this.win.visualViewport) for (const event of ['resize', 'scroll']) this.lifetime.listen(this.win.visualViewport, event, refreshHeight);
     const observer = new ResizeObserver(entries => {
       const entry = entries[0]; if (!entry || this.lifetime.disposed) return;
       this.resize({ width: entry.contentRect.width, height: entry.contentRect.height });
@@ -154,7 +187,7 @@ export class ViewportController {
       this.heightObserver.observe(footer);
       this.lifetime.add(() => this.heightObserver?.disconnect());
     }
-    this.lifetime.add(() => { if (this.frame) this.win.cancelAnimationFrame(this.frame); this.finishDrag(); });
+    this.lifetime.add(() => { ++this.actionEpoch; this.clearActionFeedback(); if (this.frame) this.win.cancelAnimationFrame(this.frame); this.finishDrag(); });
   }
   private button(text: string, label: string, fn: (e: MouseEvent) => void): HTMLButtonElement {
     const button = this.svg.ownerDocument.createElement('button');
@@ -162,6 +195,42 @@ export class ViewportController {
     button.setAttribute('aria-label', label); button.title = label;
     this.lifetime.listen(button, 'click', ((e: MouseEvent) => { e.stopPropagation(); fn(e); }) as EventListener);
     return button;
+  }
+  private setControlIcon(target: HTMLElement, name?: ViewerActionIcon | 'check'): void {
+    target.querySelector('.kmv-control-icon')?.remove();
+    if (name) target.prepend(controlIcon(this.svg.ownerDocument, name));
+  }
+  private clearActionFeedback(): void {
+    if (this.actionFeedbackTimer !== undefined) this.win.clearTimeout(this.actionFeedbackTimer);
+    this.actionFeedbackTimer = undefined;
+    const reset = this.resetActionFeedback; this.resetActionFeedback = undefined; reset?.();
+    this.actionStatus.classList.remove('kmv-action-status-transient');
+  }
+  private showActionSuccess(button: HTMLButtonElement, icon: ViewerActionIcon | undefined, summary: HTMLElement, message: string): void {
+    this.clearActionFeedback();
+    const originalTitle = button.title;
+    this.setControlIcon(button, 'check'); this.setControlIcon(summary, 'check');
+    button.classList.add('kmv-copy-success'); summary.classList.add('kmv-copy-success');
+    button.title = message; summary.title = message;
+    this.actionStatus.classList.add('kmv-action-status-transient');
+    this.resetActionFeedback = () => {
+      this.setControlIcon(button, icon); this.setControlIcon(summary, 'download');
+      button.classList.remove('kmv-copy-success'); summary.classList.remove('kmv-copy-success');
+      button.title = originalTitle; summary.title = 'Source & export';
+    };
+    const epoch = this.actionEpoch;
+    this.actionFeedbackTimer = this.win.setTimeout(() => {
+      if (this.lifetime.disposed || epoch !== this.actionEpoch) return;
+      this.clearActionFeedback(); this.actionStatus.replaceChildren();
+    }, 1600);
+  }
+  private constrainMenus(): void {
+    if (this.lifetime.disposed) return;
+    const visual = this.win.visualViewport;
+    const height = visual?.height || this.win.innerHeight;
+    const footer = this.root.querySelector<HTMLElement>('.kmv-footer');
+    const above = footer ? footer.getBoundingClientRect().top - (visual?.offsetTop || 0) - 8 : height / 2;
+    this.root.style.setProperty('--kmv-menu-max-height', `${Math.max(32, Math.floor(Math.min(height / 2, above)))}px`);
   }
   private events(): void {
     const on = (type: string, callback: EventListener, target: EventTarget = this.viewport, options?: AddEventListenerOptions) => this.lifetime.listen(target, type, callback, options);
@@ -172,7 +241,7 @@ export class ViewportController {
       if (actions[e.key]) { e.preventDefault(); e.stopPropagation(); actions[e.key]!(); }
     }) as EventListener);
     on('keydown', ((e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); this.zoomMenu.hidden = false; this.zoomInput.setAttribute('aria-expanded', 'true'); (this.zoomMenu.querySelector('button') as HTMLButtonElement | null)?.focus(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); this.constrainMenus(); this.zoomMenu.hidden = false; this.zoomInput.setAttribute('aria-expanded', 'true'); (this.zoomMenu.querySelector('button') as HTMLButtonElement | null)?.focus(); return; }
       if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); this.commitInput(); this.viewport.focus({ preventScroll: true }); }
       else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.closePresets(); this.zoomInput.value = this.percent(); this.viewport.focus({ preventScroll: true }); }
     }) as EventListener, this.zoomInput);
@@ -240,21 +309,35 @@ export class ViewportController {
   private closePresets(): void {
     this.zoomMenu.hidden = true; this.zoomInput.setAttribute('aria-expanded', 'false');
   }
-  private heightLimit(): number {
-    const parent = this.root.closest('.view-content, .markdown-reading-view, .cm-scroller') as HTMLElement | null;
-    if (parent && parent !== this.heightParent && this.heightObserver) {
-      if (this.heightParent) this.heightObserver.unobserve(this.heightParent);
-      this.heightParent = parent; this.heightObserver.observe(parent);
+  private heightBounds(): { min: number; max: number } {
+    const parents = new Set<HTMLElement>();
+    for (let parent = this.root.parentElement; parent; parent = parent.parentElement) if (parent.matches('.view-content, .markdown-reading-view, .cm-scroller')) parents.add(parent);
+    const previous = this.heightParents; this.heightParents = parents;
+    if (this.heightObserver) {
+      for (const parent of previous) if (!parents.has(parent)) this.heightObserver.unobserve(parent);
+      for (const parent of parents) if (!previous.has(parent)) this.heightObserver.observe(parent);
     }
-    const available = Math.min(this.win.innerHeight, parent?.clientHeight || this.win.innerHeight);
+    const heights = [this.win.innerHeight, this.win.visualViewport?.height ?? 0, ...[...parents].map(parent => parent.clientHeight)].filter(height => height > 0 && Number.isFinite(height));
+    const available = heights.length ? Math.min(...heights) : 0;
     const footer = this.root.querySelector('.kmv-footer') as HTMLElement | null;
-    return Math.max(150, available * .88 - (footer?.offsetHeight || 80));
+    const max = Math.max(0, Math.floor(available * .88 - (footer?.offsetHeight || 80) - 2));
+    // Leave room to shrink in a small pane instead of setting its minimum to its maximum.
+    const min = Math.min(150, max, Math.max(40, Math.floor(max / 2)));
+    this.root.style.setProperty('--kmv-viewport-min-height', `${min}px`);
+    return { min, max };
+  }
+  private setHeight(requested: number, manual = false): void {
+    const { min, max } = this.heightBounds();
+    const next = Math.round(Math.max(min, Math.min(max, requested)));
+    if (Math.abs(this.viewport.clientHeight - next) > 1) {
+      if (manual) this.manualHeight = Math.max(min, requested);
+      this.viewport.style.height = `${next}px`;
+    }
+    this.constrainMenus();
   }
   private autoHeight(width: number): void {
     if (this.options.mode !== 'width' || width <= 0) return;
-    const height = this.userHeight ? this.viewport.clientHeight : this.native.height * Math.min(1, Math.max(1, width - 32) / this.native.width) + 32;
-    const next = Math.round(Math.max(150, Math.min(this.heightLimit(), height)));
-    if (Math.abs(this.viewport.clientHeight - next) > 1) this.viewport.style.height = `${next}px`;
+    this.setHeight(this.manualHeight ?? this.native.height * Math.min(1, Math.max(1, width - 32) / this.native.width) + 32);
   }
   private addResizeHandle(): void {
     const handle = this.button('↕', 'Resize diagram height. Arrow keys resize; Home restores automatic height.', () => {});
@@ -262,29 +345,29 @@ export class ViewportController {
     handle.setAttribute('aria-label', 'Resize diagram height');
     let resize: { id: number; y: number; height: number } | null = null;
     this.lifetime.listen(handle, 'pointerdown', ((e: PointerEvent) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || !e.isPrimary || resize || this.suspended) return;
       e.preventDefault(); e.stopPropagation();
+      this.finishDrag(); this.closePresets(); handle.focus({ preventScroll: true });
       resize = { id: e.pointerId, y: e.clientY, height: this.viewport.clientHeight };
       handle.setPointerCapture(e.pointerId);
     }) as EventListener);
     this.lifetime.listen(handle, 'pointermove', ((e: PointerEvent) => {
       if (!resize || resize.id !== e.pointerId) return;
       e.preventDefault();
-      const height = Math.max(150, Math.min(this.heightLimit(), resize.height + e.clientY - resize.y));
-      if (height === this.viewport.clientHeight) return;
-      this.userHeight = true; this.viewport.style.height = `${height}px`;
+      this.setHeight(resize.height + e.clientY - resize.y, true);
     }) as EventListener);
     const finish = (): void => {
       const previous = resize; resize = null;
       if (previous && handle.hasPointerCapture(previous.id)) handle.releasePointerCapture(previous.id);
     };
+    this.finishResize = finish;
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) this.lifetime.listen(handle, type, finish);
     this.lifetime.listen(this.win, 'blur', finish); this.lifetime.add(finish);
     this.lifetime.listen(handle, 'keydown', ((e: KeyboardEvent) => {
       if (!['ArrowUp', 'ArrowDown', 'Home'].includes(e.key)) return;
       e.preventDefault(); e.stopPropagation();
-      if (e.key === 'Home') { this.userHeight = false; this.autoHeight(this.viewport.clientWidth); }
-      else { this.userHeight = true; this.viewport.style.height = `${Math.max(150, Math.min(this.heightLimit(), this.viewport.clientHeight + (e.key === 'ArrowDown' ? 40 : -40)))}px`; }
+      if (e.key === 'Home') { this.manualHeight = undefined; this.autoHeight(this.viewport.clientWidth); }
+      else this.setHeight(this.viewport.clientHeight + (e.key === 'ArrowDown' ? 40 : -40), true);
     }) as EventListener);
     this.viewport.append(handle);
   }
@@ -299,7 +382,7 @@ export class ViewportController {
     if (parsed !== null) this.setZoom(parsed);
     this.zoomInput.value = this.percent();
   }
-  announce(message: string): void { if (!this.lifetime.disposed) this.actionStatus.textContent = message; }
+  announce(message: string): void { if (!this.lifetime.disposed) { ++this.actionEpoch; this.clearActionFeedback(); this.actionStatus.textContent = message; } }
   canPan(): boolean { return this.native.width * this.state.scale > this.size.width - 32 || this.native.height * this.state.scale > this.size.height - 32; }
   resize(next: Size): void {
     if (!validSize(next) || this.lifetime.disposed) return; // Hidden containers keep their state until visible.
@@ -315,7 +398,7 @@ export class ViewportController {
     this.state = constrain(this.native, this.size, { ...this.state, mode: 'manual', x: this.state.x + dx * Math.max(60, this.size.width * .25), y: this.state.y + dy * Math.max(60, this.size.height * .25) }); this.schedule();
   }
   recenter(): void { this.state = { ...this.state, ...center(this.native, this.size, this.state.scale), mode: 'manual' }; this.schedule(); }
-  suspend(): void { this.suspended = true; this.finishDrag(); if (this.frame) this.win.cancelAnimationFrame(this.frame); this.frame = 0; }
+  suspend(): void { this.suspended = true; this.finishDrag(); this.finishResize?.(); if (this.frame) this.win.cancelAnimationFrame(this.frame); this.frame = 0; }
   resume(): void { this.suspended = false; this.surface.append(this.svg); this.schedule(); }
   private schedule(): void {
     if (this.frame || this.suspended || this.lifetime.disposed) return;
