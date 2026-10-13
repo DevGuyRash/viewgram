@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import { DiagramViewer } from '../src/viewer/diagram';
 import { RenderScope } from '../src/viewer/render-scope';
-import { ViewportController } from '../src/viewer/controller';
+import { ViewportController, type ViewerActionResult } from '../src/viewer/controller';
 import { LivePreviewScope } from '../src/editor/live-preview-scope';
 import { waitForViewportReady } from '../src/viewer/readiness';
 let window: Window;
@@ -12,6 +12,7 @@ const observers = new Set<FakeResizeObserver>();
 class FakeResizeObserver {
   constructor(private callback: (entries: { contentRect: { width: number; height: number } }[])=>void) { observers.add(this); }
   observe() { this.callback([{contentRect:{width:600,height:300}}]); }
+  unobserve() {}
   disconnect() { observers.delete(this); }
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,25));
@@ -199,4 +200,66 @@ test('inline natural height respects viewport cap and resize handle restores aut
  handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}) as any);assert.equal(parseFloat(c.viewport.style.height),309);
  handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}) as any);assert.equal(parseFloat(c.viewport.style.height),natural);
  v.dispose();const tall=svgHost(600,9000);const t=new DiagramViewer(tall.svg);t.inline.resize({width:600,height:300});assert.ok(parseFloat(t.inline.viewport.style.height)<=window.innerHeight*.88);t.dispose();
+});
+
+function deferred<T>() {
+ let resolve!: (value:T)=>void;
+ const promise=new Promise<T>(done=>{resolve=done;});
+ return {promise,resolve};
+}
+test('latest action feedback wins out-of-order results and announcement errors remain visible',async()=>{
+ const older=deferred<ViewerActionResult>(),latest=deferred<ViewerActionResult>();const {host,svg}=svgHost();
+ const c=new ViewportController(svg,{mode:'width',actions:[
+  {text:'First',label:'First operation',icon:'copy',run:()=>older.promise},
+  {text:'Second',label:'Second operation',icon:'download',run:()=>latest.promise},
+ ]});host.append(c.root);
+ (c.root.querySelector('[aria-label="First operation"]') as HTMLButtonElement).click();
+ (c.root.querySelector('[aria-label="Second operation"]') as HTMLButtonElement).click();await tick();
+ latest.resolve({message:'Download requested.',feedback:'success'});await tick();
+ const summary=c.root.querySelector('summary')!;assert.ok(summary.classList.contains('kmv-copy-success'));
+ assert.equal(summary.querySelector('.kmv-control-icon')?.getAttribute('data-icon'),'check');
+ c.announce('Current operation failed.');
+ older.resolve({message:'Copied is only part of this stale warning.',feedback:'warning',fallback:{label:'Save stale file',run(){}}});await tick();
+ assert.equal(c.root.querySelector('.kmv-action-status')!.textContent,'Current operation failed.');
+ assert.equal(c.root.querySelector('[aria-label="Save stale file"]'),null);
+ assert.ok(!summary.classList.contains('kmv-copy-success'));assert.equal(summary.querySelector('.kmv-control-icon')?.getAttribute('data-icon'),'download');c.dispose();
+});
+test('a notice alone never creates success feedback and actionable warnings remain visible',async()=>{
+ const {host,svg}=svgHost();const c=new ViewportController(svg,{mode:'width',actions:[
+  {text:'Notice',label:'Notice operation',icon:'copy',run:()=>({message:'Copied.'})},
+  {text:'Warning',label:'Warning operation',icon:'image',run:()=>({message:'Image was not copied. Save SVG instead.',feedback:'warning',fallback:{label:'Save SVG',run(){throw new Error('Download is unavailable.');}}})},
+ ]});host.append(c.root);
+ (c.root.querySelector('[aria-label="Notice operation"]') as HTMLButtonElement).click();await tick();
+ assert.equal(c.root.querySelector('.kmv-copy-success'),null);assert.equal(c.root.querySelector('.kmv-action-status')!.textContent,'Copied.');
+ (c.root.querySelector('[aria-label="Warning operation"]') as HTMLButtonElement).click();await tick();
+ const status=c.root.querySelector('.kmv-action-status')!;assert.ok(!status.classList.contains('kmv-action-status-transient'));
+ const fallback=c.root.querySelector('[aria-label="Save SVG"]') as HTMLButtonElement;assert.ok(fallback);
+ fallback.click();assert.ok(status.textContent?.includes('Download is unavailable.'));assert.equal(c.root.querySelector('[aria-label="Save SVG"]'),fallback);assert.equal(c.root.querySelector('.kmv-copy-success'),null);c.dispose();
+});
+test('disposal prevents queued actions and late results from mutating a released controller',async()=>{
+ const {host,svg}=svgHost();let started=0;const c=new ViewportController(svg,{mode:'width',actions:[{text:'Queued',label:'Queued operation',icon:'copy',run:()=>{started++;return {message:'Copied.',feedback:'success'};}}]});host.append(c.root);
+ (c.root.querySelector('[aria-label="Queued operation"]') as HTMLButtonElement).click();c.dispose();await tick();assert.equal(started,0);
+ const second=svgHost(),result=deferred<ViewerActionResult>();const pending=new ViewportController(second.svg,{mode:'width',actions:[{text:'Pending',label:'Pending operation',icon:'copy',run:()=>result.promise}]});second.host.append(pending.root);
+ (pending.root.querySelector('[aria-label="Pending operation"]') as HTMLButtonElement).click();await tick();pending.dispose();const released=pending.root.outerHTML;
+ result.resolve({message:'Copied.',feedback:'success'});await tick();assert.equal(pending.root.outerHTML,released);assert.equal(pending.root.querySelector('.kmv-copy-success'),null);assert.equal(observers.size,0);
+ const third=svgHost(),confirmed=new ViewportController(third.svg,{mode:'width',actions:[{text:'Confirmed',label:'Confirmed operation',icon:'copy',run:()=>({message:'Copied.',feedback:'success'})}]});third.host.append(confirmed.root);await tick();
+ const created:ReturnType<typeof window.setTimeout>[]=[],cleared:ReturnType<typeof window.setTimeout>[]=[],nativeSet=window.setTimeout.bind(window),nativeClear=window.clearTimeout.bind(window);
+ window.setTimeout=((callback:any,delay?:number,...args:any[])=>{const id=nativeSet(callback,delay,...args);created.push(id);return id;}) as typeof window.setTimeout;
+ window.clearTimeout=((id:ReturnType<typeof window.setTimeout>)=>{cleared.push(id);nativeClear(id);}) as typeof window.clearTimeout;
+ (confirmed.root.querySelector('[aria-label="Confirmed operation"]') as HTMLButtonElement).click();await tick();assert.ok(confirmed.root.querySelector('.kmv-copy-success'));assert.ok(created.length>0);
+ confirmed.dispose();assert.ok(created.every(id=>cleared.includes(id)));assert.equal(confirmed.root.querySelector('.kmv-copy-success'),null);
+});
+test('visualViewport-only changes clamp preferred height and their listeners are removed on disposal',()=>{
+ class Visual extends window.EventTarget {
+  height=768;offsetTop=0;active=new Set<string>();
+  addEventListener(type:string,listener:any,options?:any){this.active.add(type);super.addEventListener(type,listener,options);}
+  removeEventListener(type:string,listener:any){this.active.delete(type);super.removeEventListener(type,listener);}
+ }
+ const visual=new Visual();Object.defineProperty(window,'visualViewport',{value:visual,configurable:true});
+ const {host,svg}=svgHost(600,250),c=new ViewportController(svg,{mode:'width'});host.append(c.root);
+ Object.defineProperty(c.viewport,'clientWidth',{get:()=>600});Object.defineProperty(c.viewport,'clientHeight',{get:()=>parseFloat(c.viewport.style.height)||300});c.resize({width:600,height:300});
+ const handle=c.root.querySelector('[aria-label="Resize diagram height"]')!;handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}) as any);const preferred=parseFloat(c.viewport.style.height);
+ const outerHeight=window.innerHeight;visual.height=240;visual.dispatchEvent(new window.Event('resize'));assert.ok(parseFloat(c.viewport.style.height)<150);assert.equal(window.innerHeight,outerHeight);
+ visual.height=768;visual.dispatchEvent(new window.Event('resize'));assert.equal(parseFloat(c.viewport.style.height),preferred);assert.deepEqual([...visual.active].sort(),['resize','scroll']);
+ c.dispose();assert.equal(visual.active.size,0);const released=c.viewport.style.height;visual.height=180;visual.dispatchEvent(new window.Event('resize'));assert.equal(c.viewport.style.height,released);
 });

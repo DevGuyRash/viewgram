@@ -1,4 +1,5 @@
-import {test,expect} from '@playwright/test';
+import {test,expect,type Locator} from '@playwright/test';
+async function sourceDocument(code:Locator):Promise<string>{return code.evaluate(element=>{const view=window.demo.EditorView.findFromDOM(element as HTMLElement);if(!view)throw new Error('Source editor view is missing.');return view.state.doc.toString();});}
 test.beforeEach(async({page})=>{await page.goto('/');await expect(page.locator('html')).toHaveAttribute('data-ready','true');});
 
 test('upgrade: natural height, preset, wheel and middle drag',async({page})=>{
@@ -17,15 +18,15 @@ test('upgrade: semantic double-click edits actual source and rerenders escaped l
  await node.dblclick();
  await test.info().attach('source-edit-pointer-targets',{body:JSON.stringify(await page.evaluate(()=>(window as any).editPointerTargets)),contentType:'application/json'});
  const editor=page.getByRole('dialog',{name:'Edit Mermaid source'});await expect(editor).toBeVisible();const value='New "label" <tag> [x] & 😀';await editor.getByRole('textbox',{name:'Element label',exact:true}).fill(value);await page.screenshot({path:'evidence/08-source-editor.png'});await editor.getByRole('button',{name:'Save source',exact:true}).click();await expect(editor).toHaveCount(0);
- await expect(root.locator('g.node').filter({hasText:value})).toHaveCount(1);await root.locator('summary').click();await root.getByRole('button',{name:'Edit Mermaid source',exact:true}).click();await expect(page.getByRole('textbox',{name:'Mermaid source',exact:true})).toHaveValue(/#34;label#34;/);await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await expect(root.locator('g.node').filter({hasText:value})).toHaveCount(1);await root.locator('summary').click();await root.getByRole('button',{name:'Edit Mermaid source',exact:true}).click();await expect.poll(()=>sourceDocument(page.getByRole('textbox',{name:'Mermaid source',exact:true}))).toMatch(/#34;label#34;/);await page.getByRole('button',{name:'Cancel',exact:true}).click();
 });
 
 test('upgrade: invalid source leaves the actual demo source and native SVG unchanged',async({page})=>{
- const root=page.locator('[data-fixture="branching-flowchart"] .kmv-viewer');const before=await root.locator('svg').evaluate(el=>{(window as any).invalidSourceSvg=el;return el.textContent;});
- await root.locator('summary').click();await root.getByRole('button',{name:'Edit Mermaid source',exact:true}).click();const editor=page.getByRole('dialog',{name:'Edit Mermaid source'});const code=editor.getByRole('textbox',{name:'Mermaid source',exact:true});const original=await code.inputValue();
+ const root=page.locator('[data-fixture="branching-flowchart"] .kmv-viewer');const before=await root.locator('.kmv-surface > svg').evaluate(el=>{(window as any).invalidSourceSvg=el;return el.textContent;});
+ await root.locator('summary').click();await root.getByRole('button',{name:'Edit Mermaid source',exact:true}).click();const editor=page.getByRole('dialog',{name:'Edit Mermaid source'});const code=editor.getByRole('textbox',{name:'Mermaid source',exact:true});const original=await sourceDocument(code);
  await code.fill('flowchart TD\n A --> ]');await editor.getByRole('button',{name:'Save source',exact:true}).click();await expect(editor.locator('.kmv-source-status')).not.toBeEmpty();await expect(editor.getByRole('button',{name:'Cancel',exact:true})).toBeEnabled();await expect(editor).toBeVisible();await editor.getByRole('button',{name:'Cancel',exact:true}).click();
- expect(await root.locator('svg').textContent()).toBe(before);expect(await root.locator('svg').evaluate(el=>el===(window as any).invalidSourceSvg)).toBe(true);
- await root.locator('summary').click();await root.getByRole('button',{name:'Edit Mermaid source',exact:true}).click();await expect(page.getByRole('textbox',{name:'Mermaid source',exact:true})).toHaveValue(original);await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ expect(await root.locator('.kmv-surface > svg').textContent()).toBe(before);expect(await root.locator('.kmv-surface > svg').evaluate(el=>el===(window as any).invalidSourceSvg)).toBe(true);
+ await root.locator('summary').click();await root.getByRole('button',{name:'Edit Mermaid source',exact:true}).click();await expect.poll(()=>sourceDocument(page.getByRole('textbox',{name:'Mermaid source',exact:true}))).toBe(original);await page.getByRole('button',{name:'Cancel',exact:true}).click();
 });
 
 test('upgrade: SVG save and denied clipboard expose truthful outcomes',async({page})=>{

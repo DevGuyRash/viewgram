@@ -1,15 +1,19 @@
 // Mermaid is a development-only fixture generator, never part of dist/main.js.
 import mermaid from 'mermaid';
+import { EditorView } from '@codemirror/view';
 import wide from '../fixtures/wide-flowchart.mmd';
 import tall from '../fixtures/tall-flowchart.mmd';
 import branching from '../fixtures/branching-flowchart.mmd';
 import sequence from '../fixtures/sequence.mmd';
 import { RenderScope } from '../src/viewer/render-scope';
 import { DiagramViewer } from '../src/viewer/diagram';
+import { SourceEditor } from '../src/viewer/source-editor';
+import { SourceEditorSessions } from '../src/viewer/source-editor-sessions';
 import type { DiagramSource } from '../src/viewer/source';
 import { waitForViewportReady } from '../src/viewer/readiness';
 
 const scopes: RenderScope[] = [];
+const sessions = new SourceEditorSessions();
 const sources: Record<string, string> = {};
 const names = ['wide-flowchart', 'tall-flowchart', 'branching-flowchart', 'sequence'];
 const fixtureText: Record<string,string> = { 'wide-flowchart': wide, 'tall-flowchart': tall, 'branching-flowchart': branching, sequence };
@@ -36,7 +40,7 @@ function mount(name: string, target: HTMLElement): RenderScope {
       container.replaceChildren(document.importNode(new DOMParser().parseFromString(rendered.svg, 'image/svg+xml').documentElement, true));
     },
   };
-  const scope = new RenderScope(container, (href) => { document.querySelector('#link-status')!.textContent = `Opened ${href}`; }, () => source);
+  const scope = new RenderScope(container, (href) => { document.querySelector('#link-status')!.textContent = `Opened ${href}`; }, () => source, sessions);
   scopes.push(scope); return scope;
 }
 for (const name of names) mount(name, document.querySelector(`[data-fixture="${name}"]`)!);
@@ -52,8 +56,8 @@ document.querySelector('#mount')!.addEventListener('click', () => { if (!dynamic
 document.querySelector('#unmount')!.addEventListener('click', () => { dynamicScope?.dispose(); dynamicScope = undefined; dynamic.replaceChildren(); });
 Object.assign(window, {
   demo: {
-    scopes, sources, mount, DiagramViewer, RenderScope,
-    disposeAll: () => scopes.forEach(scope => scope.dispose()),
+    scopes, sources, sessions, mount, DiagramViewer, RenderScope, SourceEditor, SourceEditorSessions, EditorView,
+    disposeAll: () => { sessions.dispose(); scopes.forEach(scope => scope.dispose()); },
     ready: true,
   },
 });
@@ -104,7 +108,8 @@ async function attachTypeViewer(result: TypeResult): Promise<TypeResult> {
      const rendered = await mermaid.render(`taxonomy_edit_${++renderCount}`,next);
      current=next; host.replaceChildren(document.importNode(new DOMParser().parseFromString(rendered.svg,'image/svg+xml').documentElement,true));
    },
- }));
+ }), sessions);
+ scopes.push(taxonomyScope);
  const root=host.querySelector<HTMLElement>('.kmv-viewer');
  if(!root){result.viewer='fail';result.message='Native SVG has no usable dimensions or was not wrapped.';return result;}
  try { await waitForViewportReady(root); }
