@@ -12,7 +12,7 @@ export interface ViewerOptions {
   openLink?: (href: string, newLeaf: boolean) => void;
 }
 const ZOOM_PRESETS = [10, 25, 50, 75, 100, 125, 150, 200, 300, 400];
-const interactive = 'a, summary, button, input, textarea, select, [role="button"], [contenteditable="true"]';
+const interactive = 'a, summary, button, input, textarea, select, [role="button"], [role="link"], [contenteditable="true"]';
 function element(doc: Document, tag: string, className: string, text?: string): HTMLElement {
   const el = doc.createElement(tag); el.className = className; if (text) el.textContent = text; return el;
 }
@@ -180,24 +180,26 @@ export class ViewportController {
     on('focus', (() => this.zoomInput.select()) as EventListener, this.zoomInput);
     on('pointerdown', ((e: PointerEvent) => {
       this.suppressClick = false;
-      if ((e.button !== 0 && e.button !== 1) || !e.isPrimary || (e.target as Element).closest(interactive) || !this.canPan() || this.suspended) return;
+      const control = (e.target as Element).closest(interactive);
+      if ((e.button !== 0 && e.button !== 1) || !e.isPrimary || (control && !(e.button === 1 && control.matches('a, [role="link"]'))) || !this.canPan() || this.suspended) return;
       // Touch retains vertical document scrolling in width-fit mode. Use 100%/zoom for touch dragging.
       if (e.pointerType === 'touch' && this.state.mode !== 'manual') return;
       e.preventDefault(); e.stopPropagation();
       this.viewport.focus({ preventScroll: true });
       this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, startX: this.state.x, startY: this.state.y, moved: false };
-      this.viewport.setPointerCapture(e.pointerId);
     }) as EventListener);
     on('pointermove', ((e: PointerEvent) => {
       const drag = this.drag; if (!drag || e.pointerId !== drag.id) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+      if (!drag.moved) this.viewport.setPointerCapture(e.pointerId);
       drag.moved = true; this.suppressClick = true;
       e.preventDefault(); e.stopPropagation();
       this.state = constrain(this.native, this.size, { ...this.state, mode: 'manual', x: drag.startX + dx, y: drag.startY + dy });
       this.root.classList.add('kmv-dragging'); this.schedule();
-    }) as EventListener);
-    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) on(type, (() => this.finishDrag()) as EventListener);
+    }) as EventListener, this.win, { capture: true });
+    for (const type of ['pointerup', 'pointercancel']) on(type, (() => this.finishDrag()) as EventListener, this.win, { capture: true });
+    on('lostpointercapture', (() => this.finishDrag()) as EventListener);
     on('blur', (() => this.finishDrag()) as EventListener, this.win);
     on('click', ((e: MouseEvent) => {
       if (this.suppressClick) { e.preventDefault(); e.stopImmediatePropagation(); this.suppressClick = false; }
@@ -261,14 +263,16 @@ export class ViewportController {
     let resize: { id: number; y: number; height: number } | null = null;
     this.lifetime.listen(handle, 'pointerdown', ((e: PointerEvent) => {
       if (e.button !== 0) return;
-      e.preventDefault(); e.stopPropagation(); this.userHeight = true;
+      e.preventDefault(); e.stopPropagation();
       resize = { id: e.pointerId, y: e.clientY, height: this.viewport.clientHeight };
       handle.setPointerCapture(e.pointerId);
     }) as EventListener);
     this.lifetime.listen(handle, 'pointermove', ((e: PointerEvent) => {
       if (!resize || resize.id !== e.pointerId) return;
       e.preventDefault();
-      this.viewport.style.height = `${Math.max(150, Math.min(this.heightLimit(), resize.height + e.clientY - resize.y))}px`;
+      const height = Math.max(150, Math.min(this.heightLimit(), resize.height + e.clientY - resize.y));
+      if (height === this.viewport.clientHeight) return;
+      this.userHeight = true; this.viewport.style.height = `${height}px`;
     }) as EventListener);
     const finish = (): void => {
       const previous = resize; resize = null;
