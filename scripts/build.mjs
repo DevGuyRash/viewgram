@@ -3,7 +3,7 @@ import { writeTaxonomyData } from './taxonomy-data.mjs';
 await writeTaxonomyData();
 import { mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
 await mkdir('dist', {recursive:true});
-await build({entryPoints:['src/main.ts'],outfile:'dist/main.js',bundle:true,external:['obsidian','@codemirror/state','@codemirror/view','@codemirror/commands','@codemirror/language'],platform:'browser',format:'cjs',target:'es2022',minify:true,banner:{js:'/* Mermaid Viewer: generated from private source. Do not hand-edit. */'}});
+await build({entryPoints:['src/main.ts'],outfile:'dist/main.js',bundle:true,external:['obsidian','@codemirror/state','@codemirror/view','@codemirror/commands','@codemirror/language','@lezer/highlight'],platform:'browser',format:'cjs',target:'es2022',minify:true,banner:{js:'/* Mermaid Viewer: generated from private source. Do not hand-edit. */'}});
 await copyFile('manifest.json','dist/manifest.json');
 await build({entryPoints:['src/styles.css'],outfile:'dist/styles.css',bundle:true});
 await build({entryPoints:['demo/demo.ts'],outfile:'demo/viewer.js',bundle:true,loader:{'.mmd':'text'},minify:true,platform:'browser',format:'esm',target:'es2022'});
