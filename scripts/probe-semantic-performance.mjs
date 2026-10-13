@@ -45,6 +45,11 @@ try {
         const percentile = (values, fraction) => { const sorted = [...values].sort((a, b) => a - b); return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * fraction))]; };
         let start = performance.now(); const highlighter = new Highlighter(svg); const constructionMs = performance.now() - start;
         const constructionMutations = observer.takeRecords().length;
+        // Both implementations settle constructor style/layout work before the
+        // first hover. The baseline has no filter reads and would otherwise defer
+        // that work outside the handler while the candidate pays it inside.
+        start = performance.now(); const settledBox = svg.getBoundingClientRect(); const postConstructionLayoutMs = performance.now() - start;
+        const layoutBounds = { width: settledBox.width, height: settledBox.height };
         const hover = index => vertices[index].dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
         start = performance.now(); hover(25); const firstHoverMs = performance.now() - start, firstHoverMutations = observer.takeRecords().length;
         for (let warm = 0; warm < 20; warm++) hover(25 + warm % 3);
@@ -62,7 +67,7 @@ try {
         highlighter.dispose(); const restored = svg.outerHTML === original; observer.disconnect(); host.remove();
         if (!correct || !identity || !restored) throw new Error(`Correctness guard failed: ${implementation}/${nodes}, correct=${correct}, identity=${identity}, restored=${restored}`);
         if (implementation === 'current' && untouchedMutationCounts.some(count => count !== 0)) throw new Error(`Local highlight guard failed: unrelated node was mutated at ${nodes} nodes.`);
-        return { nodes, edges: nodes - 1, repetition, implementation, constructionMs, constructionMutations, firstHoverMs, firstHoverMutations,
+        return { nodes, edges: nodes - 1, repetition, implementation, constructionMs, constructionMutations, postConstructionLayoutMs, layoutBounds, firstHoverMs, firstHoverMutations,
           handlerMs: { p50: percentile(times, .5), p95: percentile(times, .95), samples: times }, handlerMutations: { p50: percentile(mutations, .5), p95: percentile(mutations, .95), samples: mutations },
           untouchedMutationCounts, clearMs, clearMutations, proxies, correct, identity, restored };
       }, { nodes, repetition, implementation });
@@ -71,7 +76,7 @@ try {
     }
   }
   await mkdir(resolve('evidence/semantic-native'), { recursive: true });
-  await writeFile(output, JSON.stringify({ environment, workload: 'Visible SVG sparse directed chain; degree two; 20 hover warmups then 60 delegated pointerover events; three interleaved repetitions; construction measured separately.',
-    scope: 'Synchronous semantic handler and DOM mutation microprobe. Browser paint, real pointer travel, source reads, exports, and full app latency are outside the timed region. Native11.13/offset hover correctness is established separately by semantic-hit.spec.ts.', results }, null, 2));
+  await writeFile(output, JSON.stringify({ environment, workload: 'Visible SVG sparse directed chain; degree two; explicitly timed getBoundingClientRect style/layout flush after construction for both implementations; first hover measured afterward; 20 hover warmups then 60 delegated pointerover events; three interleaved repetitions.',
+    scope: 'Synchronous semantic handler and DOM mutation microprobe. Construction and post-construction style/layout are recorded separately. Browser paint, real pointer travel, source reads, exports, and full app latency are outside the timed region. Native11.13/offset hover correctness is established separately by semantic-hit.spec.ts.', results }, null, 2));
   process.stdout.write(`Saved ${output}\n`);
 } finally { await browser.close(); }

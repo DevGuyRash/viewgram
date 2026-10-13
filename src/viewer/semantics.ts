@@ -531,12 +531,12 @@ export class SemanticHighlighter {
       this.hitTargets.set(proxy, el); this.byElement.set(proxy, item);
     }
   }
-  private stateClasses(item: Item, state?: Emphasis): void {
+  private stateClasses(item: Item, state?: Emphasis, filters?: ReadonlyMap<Element, string>): void {
     for (const el of item.elements) {
       for (const name of transient) this.removeClass(el, name);
       this.restore(el, 'data-kmv-relation'); this.restoreFilter(el);
       if (!state || state === 'context') continue;
-      this.preserveFilter(el);
+      this.preserveFilter(el, filters?.get(el));
       if (state === 'active') this.addClass(el, 'kmv-semantic-active');
       else {
         this.addClass(el, 'kmv-semantic-related');
@@ -544,8 +544,8 @@ export class SemanticHighlighter {
       }
     }
   }
-  private preserveFilter(el: Element): void {
-    const native = this.svg.ownerDocument.defaultView?.getComputedStyle(el).filter;
+  private preserveFilter(el: Element, captured?: string): void {
+    const native = captured ?? this.svg.ownerDocument.defaultView?.getComputedStyle(el).filter;
     const original = el.getAttribute('style');
     // Set an explicit empty value as well: native filters are not inherited,
     // whereas CSS custom properties would otherwise inherit from a parent item.
@@ -573,7 +573,7 @@ export class SemanticHighlighter {
     if (this.disposed || item === this.active) return;
     if (!item) { this.clear(); return; }
     const previous = this.active;
-    this.active = item; this.addClass(this.svg, 'kmv-has-semantic-hover');
+    this.active = item;
     const related = new Map<Item, Relation | undefined>();
     for (const other of item.related) related.set(other, undefined);
     if (item.edge) {
@@ -594,13 +594,21 @@ export class SemanticHighlighter {
       this.addContext(states, bright, this.parents, parents);
       this.addContext(states, bright, this.children, children);
     }
+    // Remove only changed previous emphasis, then resolve the next neighborhood's
+    // native filters together. Reading after the full dim pass would force a
+    // synchronous whole-chart style flush inside the first hover handler.
+    for (const [other, state] of this.emphasis) if (states.get(other) !== state) this.stateClasses(other);
+    const filters = new Map<Element, string>();
+    for (const [other, state] of states) if (state !== 'context' && this.emphasis.get(other) !== state) {
+      for (const el of other.elements) filters.set(el, this.svg.ownerDocument.defaultView?.getComputedStyle(el).filter || 'none');
+    }
+    this.addClass(this.svg, 'kmv-has-semantic-hover');
     // Only first entry dims the diagram. Target changes touch the previous and
     // next neighborhoods, with no item rescan or bright×all containment pass.
     if (!previous) for (const other of this.items) if (!states.has(other)) this.dim(other);
-    for (const [other, state] of this.emphasis) if (states.get(other) !== state) this.stateClasses(other);
     for (const other of this.emphasis.keys()) if (!states.has(other)) this.dim(other);
     for (const [other, state] of states) if (this.emphasis.get(other) !== state) {
-      this.undim(other); this.stateClasses(other, state);
+      this.undim(other); this.stateClasses(other, state, filters);
     }
     this.emphasis.clear(); for (const [other, state] of states) this.emphasis.set(other, state);
   }
