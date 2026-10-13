@@ -19,7 +19,7 @@
 .kmv-viewer {
   container: kmv-viewer / inline-size;
   display: flex; flex-direction: column; inline-size: 100%; max-inline-size: 100%; min-inline-size: 0;
-  margin: 12px 0; border: 1px solid var(--kmv-border); border-radius: var(--kmv-radius);
+  position: relative; margin: 12px 0; border: 1px solid var(--kmv-border); border-radius: var(--kmv-radius);
   background: var(--kmv-bg); line-height: 1.4;
 }
 /* Kingdom ui-misc has broad overflow rules; only the viewport clips the SVG. */
@@ -28,8 +28,13 @@
   position: relative; height: 300px; min-height: var(--kmv-viewport-min-height, 150px); width: 100%; flex: 1 0 auto;
   border-radius: var(--kmv-radius) var(--kmv-radius) 0 0; box-sizing: border-box; outline-offset: -3px;
   touch-action: pan-y pinch-zoom;
-  background-image: radial-gradient(var(--kmv-border) .6px, transparent .6px); background-size: 18px 18px;
+  background-image: none; background-size: var(--kmv-background-spacing, 18px) var(--kmv-background-spacing, 18px);
 }
+.kmv-viewer[data-background="dots"] .kmv-viewport { background-image: radial-gradient(var(--kmv-border) .7px, transparent .7px); }
+.kmv-viewer[data-background="grid"] .kmv-viewport { background-image: linear-gradient(to right, var(--kmv-border) 1px, transparent 1px), linear-gradient(to bottom, var(--kmv-border) 1px, transparent 1px); }
+.kmv-viewer.kmv-viewer.kmv-resizable { min-height: 0; max-height: var(--kmv-viewer-max-height, none); flex: 0 0 auto; }
+.kmv-viewer.kmv-viewer.kmv-resizable .kmv-viewport.kmv-viewport { flex: 1 1 0; min-height: 0; }
+.kmv-accessible-help[hidden], .kmv-viewer .kmv-hint[hidden] { display: none !important; }
 .kmv-viewer .kmv-viewport .kmv-surface {
   position: absolute; top: 0; left: 0; display: block; width: max-content; height: max-content;
   margin: 0; padding: 0; border: 0; min-width: 0; min-height: 0; max-width: none; max-height: none;
@@ -43,8 +48,9 @@
 
 .kmv-viewer .kmv-footer {
   position: relative; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-  min-inline-size: 0; padding: 10px 12px; border-top: 1px solid var(--kmv-border); box-sizing: border-box;
+  flex: 0 0 auto; min-inline-size: 0; padding: 10px 12px; border-top: 1px solid var(--kmv-border); box-sizing: border-box;
 }
+.kmv-viewer.kmv-resizable .kmv-footer { padding-inline-end: calc(12px + var(--kmv-control-size)); }
 .kmv-viewer .kmv-info { display: flex; flex: 1 1 220px; flex-direction: column; gap: 6px; min-inline-size: 0; }
 .kmv-viewer .kmv-status { color: var(--kmv-text); font-size: var(--font-ui-smaller, 12px); font-weight: var(--font-semibold, 600); font-variant-numeric: tabular-nums; }
 .kmv-viewer .kmv-hint { color: var(--kmv-muted); font-size: var(--font-ui-smaller, 11px); }
@@ -59,6 +65,20 @@
 .kmv-viewer .kmv-button:hover, .kmv-dialog .kmv-button:hover, .kmv-source-editor .kmv-button:hover, .kmv-source-editor .kmv-source-actions button:hover {
   background: var(--interactive-hover, var(--background-modifier-hover, var(--kmv-raised)));
 }
+/* Host snippets style every button, including gradients and accent fills. Use the
+   host's quiet surface variables consistently for this component's toolbar. */
+.kmv-viewer.kmv-viewer .kmv-button.kmv-button,
+.kmv-dialog.kmv-dialog .kmv-button.kmv-button,
+.kmv-source-editor.kmv-source-editor .kmv-button.kmv-button,
+.kmv-source-editor.kmv-source-editor .kmv-source-actions button {
+  background: var(--background-secondary-alt, var(--kmv-raised)) !important;
+  background-image: none !important; color: var(--kmv-text) !important; box-shadow: none !important;
+  border-color: var(--kmv-border) !important; text-shadow: none !important;
+}
+.kmv-viewer.kmv-viewer .kmv-button.kmv-button:hover,
+.kmv-dialog.kmv-dialog .kmv-button.kmv-button:hover,
+.kmv-source-editor.kmv-source-editor .kmv-button.kmv-button:hover,
+.kmv-source-editor.kmv-source-editor .kmv-source-actions button:hover { background: var(--background-modifier-hover, var(--kmv-raised)) !important; }
 .kmv-viewer .kmv-button:disabled, .kmv-source-editor button:disabled { opacity: .5; cursor: default; }
 .kmv-viewer .kmv-button:focus-visible, .kmv-viewer .kmv-zoom-input:focus-visible,
 .kmv-viewer .kmv-viewport:focus-visible, .kmv-dialog .kmv-close:focus-visible,
@@ -93,7 +113,7 @@
 .kmv-viewer .kmv-center { grid-area: 2 / 2; color: var(--kmv-accent); }
 .kmv-viewer .kmv-right { grid-area: 2 / 3; }
 .kmv-viewer .kmv-down { grid-area: 3 / 2; }
-.kmv-viewer .kmv-viewport > .kmv-resize-handle {
+.kmv-viewer.kmv-viewer > .kmv-resize-handle.kmv-resize-handle {
   position: absolute; right: 4px; bottom: 4px; z-index: 3; inline-size: var(--kmv-control-size); block-size: var(--kmv-control-size);
   min-inline-size: 0; min-block-size: 0; padding: 0; font-size: 16px; cursor: ns-resize; touch-action: none; user-select: none;
 }
@@ -111,9 +131,11 @@
 .kmv-viewer .kmv-tool-menu { left: 0; min-inline-size: 180px; }
 .kmv-viewer .kmv-tool-menu .kmv-button { display: flex; justify-content: flex-start; inline-size: 100%; margin-bottom: 3px; border-color: transparent; background: transparent; text-align: left; }
 .kmv-viewer .kmv-tool-menu .kmv-button:hover { background: var(--background-modifier-hover, var(--kmv-bg)); }
+.kmv-viewer.kmv-viewer .kmv-tool-menu .kmv-button.kmv-button { background: transparent !important; border-color: transparent !important; }
+.kmv-viewer.kmv-viewer .kmv-tool-menu .kmv-button.kmv-button:hover { background: var(--background-modifier-hover, var(--kmv-bg)) !important; }
 .kmv-viewer .kmv-tool-menu .kmv-control-label { overflow-wrap: anywhere; }
 .kmv-viewer .kmv-zoom-menu { right: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; min-inline-size: 150px; }
-.kmv-viewer .kmv-zoom-menu[hidden] { display: none; }
+.kmv-viewer .kmv-zoom-menu[hidden], .kmv-viewer .kmv-tool-menu[hidden] { display: none !important; }
 /* Host preview snippets can force every div to overflow visibly. */
 .kmv-viewer.kmv-viewer .kmv-tool-menu.kmv-tool-menu,
 .kmv-viewer.kmv-viewer .kmv-zoom-menu.kmv-zoom-menu,
@@ -156,11 +178,17 @@
 .kmv-source-body { flex: 1 1 auto; min-block-size: 0; min-inline-size: 0; padding: 2px; overflow: auto; overscroll-behavior: contain; scroll-padding-block: 12px; }
 .kmv-source-body label { display: block; margin: 0 0 12px; color: var(--kmv-text); line-height: 1.5; text-align: left; }
 .kmv-source-field { min-inline-size: 0; margin-bottom: 12px; text-align: left; }
-.kmv-source-editor textarea.kmv-element-label {
+.kmv-source-editor textarea.kmv-element-label, .kmv-source-editor textarea.kmv-node-text, .kmv-source-editor textarea.kmv-relationship-label {
   display: block; inline-size: 100%; min-block-size: 70px; max-inline-size: 100%; margin-top: 6px; padding: 8px;
   border: 1px solid var(--kmv-border); border-radius: var(--radius-s, 6px); background: var(--kmv-bg); color: var(--kmv-text);
   font: inherit; text-align: left; resize: vertical; box-sizing: border-box;
 }
+.kmv-source-toolbar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-block-end: 8px; }
+.kmv-source-body .kmv-source-toolbar label { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--kmv-muted); font-size: var(--font-ui-smaller, 12px); }
+.kmv-source-relationships { display: flex; flex-direction: column; gap: 12px; min-inline-size: 0; margin-block: 12px; }
+.kmv-source-relationship { min-inline-size: 0; padding-block-start: 12px; border-block-start: 1px solid var(--kmv-border); overflow-wrap: anywhere; }
+.kmv-source-relationship h3, .kmv-source-relationships h3 { margin: 0 0 8px; color: var(--kmv-text); font-size: var(--font-ui-small, 13px); font-weight: var(--font-semibold, 600); }
+.kmv-source-editor .kmv-source-readonly-label { color: var(--kmv-muted); background: var(--kmv-raised); cursor: default; }
 .kmv-source-code {
   display: flex; flex-direction: column; block-size: clamp(7rem, calc(var(--kmv-editor-viewport-height, var(--kmv-editor-screen-height)) * .38), 26rem);
   min-block-size: 0; min-inline-size: 0; margin-top: 6px; padding: 0; border: 0; background: transparent;
@@ -184,6 +212,8 @@
   .kmv-viewer .kmv-dock { inline-size: 100%; align-items: stretch; }
   .kmv-viewer .kmv-dpad { display: flex; flex-wrap: wrap; align-self: flex-end; gap: 4px; }
   .kmv-viewer .kmv-tools, .kmv-viewer .kmv-zoom-picker { position: static; }
+  .kmv-viewer .kmv-tools-toggle { inline-size: var(--kmv-control-size); padding-inline: 4px; }
+  .kmv-viewer .kmv-tools-toggle .kmv-control-label { display: none; }
   .kmv-viewer .kmv-tool-menu, .kmv-viewer .kmv-zoom-menu { left: 12px; right: 12px; min-inline-size: 0; max-inline-size: none; }
 }
 @media (max-width: 420px) {
@@ -192,7 +222,7 @@
 }
 @media (any-pointer: coarse) {
   .kmv-viewer, .kmv-dialog, .kmv-source-editor { --kmv-control-size: 36px; --kmv-pad-size: 36px; }
-  .kmv-viewer .kmv-zoom-input, .kmv-source-editor textarea.kmv-element-label, .kmv-source-editor .cm-scroller { font-size: max(16px, var(--font-text-size, 16px)); }
+  .kmv-viewer .kmv-zoom-input, .kmv-source-editor textarea.kmv-element-label, .kmv-source-editor textarea.kmv-node-text, .kmv-source-editor textarea.kmv-relationship-label, .kmv-source-editor .cm-scroller { font-size: max(16px, var(--font-text-size, 16px)); }
 }
 @supports (height: 100dvh) {
   .kmv-viewer, .kmv-dialog, .kmv-source-editor { --kmv-menu-screen-height: 50dvh; }
