@@ -1,7 +1,7 @@
 import { loadMermaid, TFile, type App, type MarkdownPostProcessorContext } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import { editorInfoField } from 'obsidian';
-import { locateSource, replaceSource, type DiagramSource, type SourceHint } from '../viewer/source';
+import { locateSource, replaceSource, type DiagramSource } from '../viewer/source';
 
 async function validate(source: string): Promise<void> {
   const mermaid: unknown = await loadMermaid();
@@ -13,20 +13,28 @@ async function validate(source: string): Promise<void> {
 /** Reading view writes through the vault's atomic process operation. */
 export function readingSource(app: App, context: MarkdownPostProcessorContext, container: HTMLElement, svg: SVGSVGElement): DiagramSource {
   const host = svg.parentElement!;
-  const info = context.getSectionInfo(host);
-  const peers = [...container.querySelectorAll('svg')].filter(item => !item.parentElement?.closest('svg') && item.closest('.mermaid, .block-language-mermaid'));
-  const hint: SourceHint = info ? { line: info.lineStart, endLine: info.lineEnd, ordinal: peers.indexOf(svg) } : {};
+  const sourcePath = context.sourcePath;
+  const ensureCurrent = (): void => {
+    if (!container.isConnected || !host.isConnected || !svg.isConnected || context.sourcePath !== sourcePath) throw new Error('This rendered block changed or closed. Reopen the diagram before editing.');
+  };
   const file = (): TFile => {
-    const result = app.vault.getAbstractFileByPath(context.sourcePath);
+    const result = app.vault.getAbstractFileByPath(sourcePath);
     if (!(result instanceof TFile)) throw new Error('The source note is no longer available.');
     return result;
   };
   return {
     read: async () => {
+      ensureCurrent();
+      const document = await app.vault.read(file());
+      ensureCurrent();
+      // Obsidian requires section information to be obtained immediately before use.
+      // Source positions can change while a native SVG is retained on screen.
+      const info = context.getSectionInfo(host);
       if (!info) throw new Error('Obsidian did not expose the source position for this rendered block. Open its source in the note editor.');
-      return locateSource(await app.vault.read(file()), hint);
+      return locateSource(document, { line: info.lineStart, endLine: info.lineEnd });
     },
     write: async (snapshot, source) => {
+      ensureCurrent();
       await app.vault.process(file(), current => replaceSource(current, snapshot, source));
     },
     validate,

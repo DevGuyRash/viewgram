@@ -37,3 +37,13 @@ test('node-shaped text inside another label or comment never becomes an editable
 test('targeted label offsets remain UTF-16 correct after astral Unicode',()=>{
  const source='flowchart LR\n B["😀"] --> A["Old"]\n';const edit=labelEdit(source,{id:'A',label:'Old',kind:'node'});assert.ok(edit);assert.equal(applyLabel(source,edit,'New'),'flowchart LR\n B["😀"] --> A["New"]\n');
 });
+test('bare nodes never edit a declaration with a punctuation-prefixed ID',()=>{
+ for(const id of ['X-A','X.A']) assert.equal(labelEdit(`flowchart LR\n${id}[A]\nA --> ${id}\n`,{id:'A',label:'A',kind:'node'}),null);
+ const source='flowchart LR\nX-->A[Old]\n';const edit=labelEdit(source,{id:'A',label:'Old',kind:'node'});assert.ok(edit);assert.equal(applyLabel(source,edit,'New'),'flowchart LR\nX-->A["New"]\n');
+});
+test('source ranges require one fenced block and use current shifted positions',()=>{
+ const block='```mermaid\nflowchart LR\nA[Same]\n```\n';const note=block+block+block;
+ assert.equal(locateSource(note,{line:8,endLine:11}).start,mermaidBlocks(note)[2]!.start);
+ assert.throws(()=>locateSource(note,{line:0,endLine:11}),/safely/);
+ assert.throws(()=>locateSource(note,{line:3,endLine:4}),/safely/);
+});
