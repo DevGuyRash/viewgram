@@ -70,7 +70,7 @@ test('25 rapid create/open/close/dispose cycles leave no active observers or dia
  await tick();assert.equal(observers.size,0);assert.equal(window.document.querySelectorAll('.kmv-viewer,dialog').length,0);
 });
 test('pointermove uses cached geometry; cancellation releases drag state',async()=>{
- const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg);const c=v.inline;
+ const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg);const c=v.inline;c.setZoom(1);
  c.viewport.getBoundingClientRect=()=>{throw new Error('Pointer movement must not read layout');};
  c.viewport.dispatchEvent(new window.PointerEvent('pointerdown',{pointerId:1,isPrimary:true,button:0,clientX:200,clientY:200,bubbles:true}) as any);
  c.viewport.dispatchEvent(new window.PointerEvent('pointermove',{pointerId:1,isPrimary:true,clientX:100,clientY:100,bubbles:true,cancelable:true}) as any);
@@ -107,15 +107,15 @@ test('pointer starts stay inside noneditable viewer while zoom textbox can focus
  v.dispose();
 });
 test('viewport drag blocks native caret placement and Escape cancels active drag',()=>{
- const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg);const c=v.inline;
+ const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg);const c=v.inline;c.setZoom(1);
  const down=new window.PointerEvent('pointerdown',{pointerId:3,isPrimary:true,button:0,clientX:200,clientY:200,bubbles:true,cancelable:true});
  c.viewport.dispatchEvent(down as any);assert.equal(down.defaultPrevented,true);
  c.viewport.dispatchEvent(new window.PointerEvent('pointermove',{pointerId:3,isPrimary:true,clientX:100,clientY:100,bubbles:true,cancelable:true}) as any);
  assert.ok(c.root.classList.contains('kmv-dragging'));c.viewport.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}) as any);
  assert.ok(!c.root.classList.contains('kmv-dragging'));v.dispose();
 });
-test('visible fit labels and accessible names agree in both view modes',()=>{
- const {svg}=svgHost();const v=new DiagramViewer(svg);const fit=v.inline.root.querySelector('[aria-label="Fit width"]');assert.equal(fit?.textContent,'Fit width');v.open();const modalFit=window.document.querySelector('dialog [aria-label="Fit diagram"]');assert.equal(modalFit?.textContent,'Fit diagram');v.dispose();
+test('primary fit controls indicate the whole chart in both view modes',()=>{
+ const {svg}=svgHost();const v=new DiagramViewer(svg);const fit=v.inline.root.querySelector('[aria-label="Fit whole chart"]');assert.equal(fit?.textContent,'Fit chart');v.open();const modalFit=window.document.querySelector('dialog [aria-label="Fit whole chart"]');assert.equal(modalFit?.textContent,'Fit chart');v.dispose();
 });
 
 function editorOwner() {
@@ -179,7 +179,7 @@ test('light native SVG remains unfiltered in both viewer contexts',()=>{
 });
 
 test('ordinary wheel pans overflowing diagrams, modifiers zoom, and edges release note scrolling',()=>{
- const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg),c=v.inline;c.setZoom(1);c.fit();
+ const {svg}=svgHost(2000,3000);const v=new DiagramViewer(svg),c=v.inline;c.setZoom(1);c.fit('width');
  const before=c.state.y;const wheel=new window.WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true});c.viewport.dispatchEvent(wheel as any);assert.ok(c.state.y<before);assert.equal(wheel.defaultPrevented,true);
  const scale=c.state.scale;const zoom=new window.WheelEvent('wheel',{deltaY:-100,bubbles:true,cancelable:true});Object.defineProperties(zoom,{ctrlKey:{value:true},clientX:{value:100},clientY:{value:100}});c.viewport.dispatchEvent(zoom as any);assert.ok(c.state.scale>scale);assert.equal(zoom.defaultPrevented,true);
  c.setZoom(.01);const edge=new window.WheelEvent('wheel',{deltaY:80,bubbles:true,cancelable:true});c.viewport.dispatchEvent(edge as any);assert.equal(edge.defaultPrevented,false);v.dispose();
@@ -216,7 +216,7 @@ test('latest action feedback wins out-of-order results and announcement errors r
  (c.root.querySelector('[aria-label="First operation"]') as HTMLButtonElement).click();
  (c.root.querySelector('[aria-label="Second operation"]') as HTMLButtonElement).click();await tick();
  latest.resolve({message:'Download requested.',feedback:'success'});await tick();
- const summary=c.root.querySelector('summary')!;assert.ok(summary.classList.contains('kmv-copy-success'));
+ const summary=c.root.querySelector('[aria-label="Source & export"]')!;assert.ok(summary.classList.contains('kmv-copy-success'));
  assert.equal(summary.querySelector('.kmv-control-icon')?.getAttribute('data-icon'),'check');
  c.announce('Current operation failed.');
  older.resolve({message:'Copied is only part of this stale warning.',feedback:'warning',fallback:{label:'Save stale file',run(){}}});await tick();

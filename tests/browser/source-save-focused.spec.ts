@@ -67,8 +67,7 @@ async function probe(page: Page) {
 
 async function openSource(page: Page) {
   const root = page.locator('[data-source-save-fixture] .kmv-viewer');
-  await root.locator('summary').click();
-  await root.getByRole('button', { name: 'Edit Mermaid source', exact: true }).click();
+  await root.getByRole('button', { name: 'Edit whole chart', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Edit Mermaid source' });
   await expect(editor).toBeVisible();
   return { editor, code: editor.getByRole('textbox', { name: 'Mermaid source', exact: true }), status: editor.locator('.kmv-source-status') };

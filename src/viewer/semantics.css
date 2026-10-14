@@ -1,8 +1,8 @@
 /* Temporary SVG emphasis only: retain every native fill, stroke, dash and marker. */
 svg[data-kmv-family] .kmv-semantic-dim { opacity: .25; }
-svg[data-kmv-family] .kmv-semantic-active { filter: drop-shadow(0 0 3px #e7b653) drop-shadow(0 0 1px #e7b653); }
-svg[data-kmv-family] .kmv-semantic-related { filter: drop-shadow(0 0 2px #a7a8b9); }
-svg[data-kmv-family] .kmv-semantic-incoming { filter: drop-shadow(0 0 2px #63a4ff); }
-svg[data-kmv-family] .kmv-semantic-outgoing { filter: drop-shadow(0 0 2px #5fd3b1); }
-svg[data-kmv-family] .kmv-semantic-both { filter: drop-shadow(0 0 2px #c28cff); }
-svg[data-kmv-family] .kmv-semantic-undirected { filter: drop-shadow(0 0 2px #a7a8b9); }
+svg[data-kmv-family] .kmv-semantic-active { filter: var(--kmv-semantic-native-filter,) drop-shadow(0 0 3px #e7b653) drop-shadow(0 0 1px #e7b653) !important; }
+svg[data-kmv-family] .kmv-semantic-related { filter: var(--kmv-semantic-native-filter,) drop-shadow(0 0 2px #a7a8b9) !important; }
+svg[data-kmv-family] .kmv-semantic-incoming { filter: var(--kmv-semantic-native-filter,) drop-shadow(0 0 2px #63a4ff) !important; }
+svg[data-kmv-family] .kmv-semantic-outgoing { filter: var(--kmv-semantic-native-filter,) drop-shadow(0 0 2px #5fd3b1) !important; }
+svg[data-kmv-family] .kmv-semantic-both { filter: var(--kmv-semantic-native-filter,) drop-shadow(0 0 2px #c28cff) !important; }
+svg[data-kmv-family] .kmv-semantic-undirected { filter: var(--kmv-semantic-native-filter,) drop-shadow(0 0 2px #a7a8b9) !important; }

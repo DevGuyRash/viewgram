@@ -1,5 +1,7 @@
 import { center, constrain, fitted, nativeSize, parsePercent, resized, validSize, zoomAt, type Size, type ViewState } from './math';
 import { Lifetime } from './lifetime';
+import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from './settings';
+import { interactiveAncestor } from './semantics';
 
 export type ViewerActionIcon = 'edit' | 'copy' | 'image' | 'download';
 export interface ViewerActionResult { message: string; feedback?: 'success' | 'warning'; fallback?: { label: string; run(): void } }
@@ -8,12 +10,16 @@ export interface ViewerOptions {
   mode: 'width' | 'contain';
   label?: string;
   nativeMermaidParent?: boolean;
+  resizable?: boolean;
+  settings?: ViewerSettings;
   open?: () => void;
+  edit?: () => void;
+  onScale?: (scale: number) => void;
   actions?: ViewerAction[];
   openLink?: (href: string, newLeaf: boolean) => void;
 }
 const ZOOM_PRESETS = [10, 25, 50, 75, 100, 125, 150, 200, 300, 400];
-const interactive = 'a, summary, button, input, textarea, select, [role="button"], [role="link"], [contenteditable="true"]';
+let helpId = 0;
 function element(doc: Document, tag: string, className: string, text?: string): HTMLElement {
   const el = doc.createElement(tag); el.className = className; if (text) el.textContent = text; return el;
 }
@@ -58,10 +64,14 @@ export class ViewportController {
   private actionFeedbackTimer?: number;
   private resetActionFeedback?: () => void;
   private finishResize?: () => void;
+  private settings: ViewerSettings;
+  private readonly resizable: boolean;
 
   constructor(readonly svg: SVGSVGElement, readonly options: ViewerOptions, native = nativeSize(svg)) {
     if (!native) throw new Error('SVG needs a valid viewBox or explicit native dimensions.');
     this.native = native;
+    this.settings = readSettings(options.settings ?? DEFAULT_SETTINGS);
+    this.resizable = options.resizable ?? options.mode === 'width';
     const doc = svg.ownerDocument;
     this.win = doc.defaultView!;
     this.root = element(doc, 'section', 'kmv-viewer');
@@ -70,7 +80,11 @@ export class ViewportController {
     this.viewport = element(doc, 'div', 'kmv-viewport');
     this.viewport.tabIndex = 0;
     this.viewport.setAttribute('role', 'region');
-    this.viewport.setAttribute('aria-label', 'Diagram. Arrow keys pan, plus and minus zoom, Home recenters, F fits, 0 sets native size.');
+    this.viewport.setAttribute('aria-label', 'Diagram');
+    const help = element(doc, 'span', 'kmv-accessible-help', 'Arrow keys pan. Plus and minus zoom. Home recenters. F fits the whole chart. W fits width. 0 sets native size. R resets the view. Double-click blank space to edit the whole chart.');
+    help.id = `kmv-help-${++helpId}`; help.hidden = true;
+    this.viewport.setAttribute('aria-describedby', help.id);
+    this.viewport.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight ArrowUp ArrowDown + - Home F W 0 R');
     // Keep the native direct-child presentation contract (notably Obsidian's dark SVG filter).
     this.surface = element(doc, 'div', options.nativeMermaidParent ? 'kmv-surface mermaid' : 'kmv-surface');
     this.svg.style.setProperty('width', `${this.native.width}px`, 'important');
@@ -89,19 +103,27 @@ export class ViewportController {
     hint.title = 'Hover a diagram element to see related items. Incoming, outgoing, bidirectional and undirected relations have distinct emphasis; theme filters can affect colors. Native line styles and arrowheads retain relationship type. Double-click an element to edit Mermaid source.';
     const actions = element(doc, 'div', 'kmv-actions');
     if (options.open) actions.append(this.button('Expand ↗', 'Open diagram lightbox', options.open));
+    if (options.edit) {
+      const edit = this.button('Edit chart', 'Edit whole chart', () => options.edit?.());
+      edit.replaceChildren(controlIcon(doc, 'edit'), element(doc, 'span', 'kmv-control-label', 'Edit chart'));
+      actions.append(edit);
+    }
     const actionStatus = this.actionStatus = element(doc, 'div', 'kmv-action-status'); actionStatus.setAttribute('role', 'status'); actionStatus.setAttribute('aria-live', 'polite');
     if (options.actions?.length) {
-      const menu = doc.createElement('details'); menu.className = 'kmv-tools';
-      const summary = doc.createElement('summary'); summary.className = 'kmv-button'; summary.title = 'Source & export';
-      summary.append(controlIcon(doc, 'download'), element(doc, 'span', 'kmv-control-label', 'Source & export'));
+      const menu = element(doc, 'div', 'kmv-tools');
       const choices = element(doc, 'div', 'kmv-tool-menu');
+      choices.hidden = true; choices.setAttribute('role', 'group'); choices.setAttribute('aria-label', 'Source and export actions');
+      const setMenuOpen = (open: boolean): void => { this.constrainMenus(); choices.hidden = !open; summary.setAttribute('aria-expanded', String(open)); };
+      const summary = this.button('Source & export', 'Source & export', () => { this.closePresets(); setMenuOpen(choices.hidden); });
+      summary.classList.add('kmv-tools-toggle'); summary.setAttribute('aria-expanded', 'false'); summary.setAttribute('aria-haspopup', 'true');
+      summary.replaceChildren(controlIcon(doc, 'download'), element(doc, 'span', 'kmv-control-label', 'Source & export'));
       menu.append(summary, choices);
       for (const action of options.actions) {
         const button = this.button(action.text, action.label, () => {
           if (button.disabled || this.lifetime.disposed) return;
           const epoch = ++this.actionEpoch;
           this.clearActionFeedback();
-          menu.open = false; summary.focus({ preventScroll: true }); button.disabled = true; button.setAttribute('aria-busy', 'true');
+          setMenuOpen(false); summary.focus({ preventScroll: true }); button.disabled = true; button.setAttribute('aria-busy', 'true');
           actionStatus.textContent = 'Working…';
           void Promise.resolve().then(() => { if (!this.lifetime.disposed) return action.run(); }).then(result => {
             if (this.lifetime.disposed || epoch !== this.actionEpoch) return;
@@ -117,17 +139,19 @@ export class ViewportController {
         button.replaceChildren(...(action.icon ? [controlIcon(doc, action.icon)] : []), element(doc, 'span', 'kmv-control-label', action.text));
         choices.append(button);
       }
-      this.lifetime.listen(menu, 'toggle', () => this.constrainMenus());
-      this.lifetime.listen(doc, 'pointerdown', event => { if (!menu.contains(event.target as Node)) menu.open = false; }, { capture: true });
-      this.lifetime.listen(menu, 'keydown', ((event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); menu.open = false; summary.focus(); } }) as EventListener);
+      this.lifetime.listen(doc, 'pointerdown', event => { if (!menu.contains(event.target as Node)) setMenuOpen(false); }, { capture: true });
+      this.lifetime.listen(menu, 'keydown', ((event: KeyboardEvent) => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setMenuOpen(false); summary.focus(); }
+        else if (event.key === 'ArrowDown' && event.target === summary) { event.preventDefault(); event.stopPropagation(); setMenuOpen(true); choices.querySelector('button')?.focus(); }
+      }) as EventListener);
       actions.append(menu);
     }
     info.append(this.status, hint, actions, actionStatus);
     const dock = element(doc, 'div', 'kmv-dock');
     dock.setAttribute('aria-label', 'Diagram controls');
     const row = element(doc, 'div', 'kmv-zoom-row');
-    this.zoomOut = this.button('−', 'Zoom out', e => this.nudge(-(e.shiftKey ? 0.35 : 0.15)));
-    this.zoomIn = this.button('+', 'Zoom in', e => this.nudge(e.shiftKey ? 0.35 : 0.15));
+    this.zoomOut = this.button('−', 'Zoom out', e => this.nudge(-this.zoomStep(e.shiftKey)));
+    this.zoomIn = this.button('+', 'Zoom in', e => this.nudge(this.zoomStep(e.shiftKey)));
     this.zoomInput = doc.createElement('input');
     this.zoomInput.className = 'kmv-zoom-input';
     this.zoomInput.type = 'text'; this.zoomInput.inputMode = 'decimal';
@@ -149,6 +173,8 @@ export class ViewportController {
     for (const preset of ZOOM_PRESETS) this.zoomMenu.append(this.button(`${preset}%`, `Zoom to ${preset}%`, () => {
       this.setZoom(preset / 100); this.closePresets(); this.zoomInput.focus({ preventScroll: true });
     }));
+    this.zoomMenu.append(this.button('Fit width', 'Fit diagram width', () => { this.fit('width'); this.closePresets(); this.viewport.focus({ preventScroll: true }); }));
+    this.zoomMenu.append(this.button('Reset view', 'Reset zoom, pan, and automatic height', () => { this.reset(); this.closePresets(); this.viewport.focus({ preventScroll: true }); }));
     zoomPicker.append(this.zoomInput, this.button('⌄', 'Choose zoom preset', togglePresets), this.zoomMenu);
     this.lifetime.listen(this.zoomInput, 'click', togglePresets);
     this.lifetime.listen(this.zoomMenu, 'keydown', ((event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); this.closePresets(); this.zoomInput.focus(); } }) as EventListener);
@@ -156,7 +182,7 @@ export class ViewportController {
       if (!zoomPicker.contains(event.target as Node)) this.closePresets();
     }, { capture: true });
     row.append(
-      this.button(options.mode === 'width' ? 'Fit width' : 'Fit diagram', options.mode === 'width' ? 'Fit width' : 'Fit diagram', () => this.fit()),
+      this.button('Fit chart', 'Fit whole chart', () => this.fit()),
       this.button('100%', 'Native size (100%)', () => this.setZoom(1)),
       this.zoomOut, zoomPicker, this.zoomIn,
     );
@@ -169,9 +195,10 @@ export class ViewportController {
       ['↓', 'Pan down', 'kmv-down', () => this.pan(0, -1)],
     ];
     for (const [text, label, cls, fn] of directions) { const button = this.button(text, label, fn); button.classList.add(cls); dpad.append(button); }
-    dock.append(row, dpad); footer.append(info, dock); this.root.append(this.viewport, footer);
+    dock.append(row, dpad); footer.append(info, dock); this.root.append(this.viewport, footer, help);
     this.state.mode = options.mode;
-    if (options.mode === 'width') this.addResizeHandle();
+    if (this.resizable) { this.root.classList.add('kmv-resizable'); this.addResizeHandle(); }
+    this.updateSettings(this.settings);
     this.events();
     const refreshHeight = (): void => { this.autoHeight(this.viewport.clientWidth); this.constrainMenus(); };
     this.lifetime.listen(this.win, 'resize', refreshHeight);
@@ -182,7 +209,7 @@ export class ViewportController {
     });
     observer.observe(this.viewport);
     this.lifetime.add(() => observer.disconnect());
-    if (options.mode === 'width') {
+    if (this.resizable) {
       this.heightObserver = new ResizeObserver(() => this.autoHeight(this.viewport.clientWidth));
       this.heightObserver.observe(footer);
       this.lifetime.add(() => this.heightObserver?.disconnect());
@@ -237,7 +264,7 @@ export class ViewportController {
     on('keydown', ((e: KeyboardEvent) => {
       if (e.key === 'Escape' && this.drag) { e.preventDefault(); e.stopPropagation(); this.finishDrag(); return; }
       if (e.target !== this.viewport || e.ctrlKey || e.metaKey || e.altKey) return;
-      const actions: Record<string, () => void> = { ArrowLeft: () => this.pan(1, 0), ArrowRight: () => this.pan(-1, 0), ArrowUp: () => this.pan(0, 1), ArrowDown: () => this.pan(0, -1), '+': () => this.nudge(.15), '=': () => this.nudge(.15), '-': () => this.nudge(-.15), Home: () => this.recenter(), f: () => this.fit(), F: () => this.fit(), '0': () => this.setZoom(1) };
+      const actions: Record<string, () => void> = { ArrowLeft: () => this.pan(1, 0), ArrowRight: () => this.pan(-1, 0), ArrowUp: () => this.pan(0, 1), ArrowDown: () => this.pan(0, -1), '+': () => this.nudge(this.zoomStep(e.shiftKey)), '=': () => this.nudge(this.zoomStep(e.shiftKey)), '-': () => this.nudge(-this.zoomStep(e.shiftKey)), Home: () => this.recenter(), f: () => this.fit(), F: () => this.fit(), w: () => this.fit('width'), W: () => this.fit('width'), r: () => this.reset(), R: () => this.reset(), '0': () => this.setZoom(1) };
       if (actions[e.key]) { e.preventDefault(); e.stopPropagation(); actions[e.key]!(); }
     }) as EventListener);
     on('keydown', ((e: KeyboardEvent) => {
@@ -249,7 +276,7 @@ export class ViewportController {
     on('focus', (() => this.zoomInput.select()) as EventListener, this.zoomInput);
     on('pointerdown', ((e: PointerEvent) => {
       this.suppressClick = false;
-      const control = (e.target as Element).closest(interactive);
+      const control = interactiveAncestor(e.target, this.viewport);
       if ((e.button !== 0 && e.button !== 1) || !e.isPrimary || (control && !(e.button === 1 && control.matches('a, [role="link"]'))) || !this.canPan() || this.suspended) return;
       // Touch retains vertical document scrolling in width-fit mode. Use 100%/zoom for touch dragging.
       if (e.pointerType === 'touch' && this.state.mode !== 'manual') return;
@@ -278,18 +305,25 @@ export class ViewportController {
     // Keep viewer gestures out of enclosing Mica edit/selection handlers. Links retain direct handlers.
     on('click', ((e: MouseEvent) => {
       const target = (e.target as Element).closest('a.internal-link, a[data-href]');
-      if (target && this.options.openLink) {
+      if (target && this.root.contains(target) && this.options.openLink) {
         const href = target.getAttribute('data-href') || target.getAttribute('href');
         if (href) { e.preventDefault(); this.options.openLink(href, e.ctrlKey || e.metaKey); }
       }
       e.stopPropagation();
     }) as EventListener, this.root);
-    on('dblclick', ((e: MouseEvent) => { if (!(e.target as Element).closest(interactive)) e.preventDefault(); e.stopPropagation(); }) as EventListener, this.root);
+    on('dblclick', ((e: MouseEvent) => {
+      const target = e.target as Element;
+      if (!interactiveAncestor(target, this.root)) {
+        e.preventDefault();
+        if (this.options.edit && this.viewport.contains(target) && !target.closest('.kmv-semantic, [data-kmv-kind], [data-kmv-hit-target]')) this.options.edit();
+      }
+      e.stopPropagation();
+    }) as EventListener, this.root);
     on('auxclick', ((e: MouseEvent) => {
       if (e.button === 1 && this.suppressClick) { e.preventDefault(); e.stopPropagation(); this.suppressClick = false; }
     }) as EventListener);
     on('wheel', ((e: WheelEvent) => {
-      if (this.suspended || (e.target as Element).closest(interactive)) return;
+      if (this.suspended || interactiveAncestor(e.target, this.viewport)) return;
       const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? this.size.height : 1;
       if (e.ctrlKey || e.metaKey) {
         const rect = this.viewport.getBoundingClientRect();
@@ -320,27 +354,33 @@ export class ViewportController {
     const heights = [this.win.innerHeight, this.win.visualViewport?.height ?? 0, ...[...parents].map(parent => parent.clientHeight)].filter(height => height > 0 && Number.isFinite(height));
     const available = heights.length ? Math.min(...heights) : 0;
     const footer = this.root.querySelector('.kmv-footer') as HTMLElement | null;
-    const max = Math.max(0, Math.floor(available * .88 - (footer?.offsetHeight || 80) - 2));
+    const maxOuter = Math.max(0, Math.floor(available * .88));
+    const max = Math.max(0, maxOuter - (footer?.offsetHeight || 80) - 2);
     // Leave room to shrink in a small pane instead of setting its minimum to its maximum.
-    const min = Math.min(150, max, Math.max(40, Math.floor(max / 2)));
+    const min = Math.min(150, Math.floor(max / 2));
     this.root.style.setProperty('--kmv-viewport-min-height', `${min}px`);
+    this.root.style.setProperty('--kmv-viewer-max-height', `${maxOuter}px`);
     return { min, max };
   }
   private setHeight(requested: number, manual = false): void {
     const { min, max } = this.heightBounds();
     const next = Math.round(Math.max(min, Math.min(max, requested)));
-    if (Math.abs(this.viewport.clientHeight - next) > 1) {
-      if (manual) this.manualHeight = Math.max(min, requested);
-      this.viewport.style.height = `${next}px`;
-    }
+    if (manual) this.manualHeight = Math.max(min, requested);
+    const footer = this.root.querySelector<HTMLElement>('.kmv-footer');
+    const total = next + (footer?.offsetHeight || 0) + 2;
+    // Obsidian themes can assign section/div height and flex sizing. The owned outer
+    // frame, not only its child, must grow so the footer follows every resize.
+    this.root.style.setProperty('height', `${total}px`, 'important');
+    this.root.style.setProperty('block-size', `${total}px`, 'important');
+    this.viewport.style.setProperty('height', `${next}px`, 'important');
     this.constrainMenus();
   }
   private autoHeight(width: number): void {
-    if (this.options.mode !== 'width' || width <= 0) return;
+    if (!this.resizable || width <= 0) return;
     this.setHeight(this.manualHeight ?? this.native.height * Math.min(1, Math.max(1, width - 32) / this.native.width) + 32);
   }
   private addResizeHandle(): void {
-    const handle = this.button('↕', 'Resize diagram height. Arrow keys resize; Home restores automatic height.', () => {});
+    const handle = this.button('↘', 'Resize chart height. Arrow keys resize; Home or double-click restores automatic height.', () => {});
     handle.classList.add('kmv-resize-handle');
     handle.setAttribute('aria-label', 'Resize diagram height');
     let resize: { id: number; y: number; height: number } | null = null;
@@ -367,9 +407,10 @@ export class ViewportController {
       if (!['ArrowUp', 'ArrowDown', 'Home'].includes(e.key)) return;
       e.preventDefault(); e.stopPropagation();
       if (e.key === 'Home') { this.manualHeight = undefined; this.autoHeight(this.viewport.clientWidth); }
-      else this.setHeight(this.viewport.clientHeight + (e.key === 'ArrowDown' ? 40 : -40), true);
+      else this.setHeight(this.viewport.clientHeight + (e.key === 'ArrowDown' ? 1 : -1) * (e.shiftKey ? 80 : 40), true);
     }) as EventListener);
-    this.viewport.append(handle);
+    this.lifetime.listen(handle, 'dblclick', event => { event.preventDefault(); event.stopPropagation(); this.manualHeight = undefined; this.autoHeight(this.viewport.clientWidth); });
+    this.root.append(handle);
   }
   private finishDrag(): void {
     const drag = this.drag; this.drag = null; this.root.classList.remove('kmv-dragging');
@@ -391,9 +432,19 @@ export class ViewportController {
     this.state = this.initialized ? resized(this.native, this.size, next, this.state) : fitted(this.native, next, this.options.mode);
     this.size = next; this.initialized = true; this.schedule();
   }
-  fit(): void { this.finishDrag(); this.state = fitted(this.native, this.size, this.options.mode); this.schedule(); }
+  fit(mode: 'width' | 'contain' = 'contain'): void { this.finishDrag(); this.state = fitted(this.native, this.size, mode); this.schedule(); }
+  reset(): void { this.finishResize?.(); this.manualHeight = undefined; this.autoHeight(this.viewport.clientWidth); this.fit(this.resizable ? this.settings.initialFit : this.options.mode); }
   setZoom(scale: number): void { this.finishDrag(); this.state = zoomAt(this.native, this.size, this.state, scale); this.schedule(); }
   private nudge(delta: number): void { this.setZoom(Math.max(.01, this.state.scale + delta)); }
+  private zoomStep(large = false): number { return this.settings.zoomStep / 100 * (large ? 2 : 1); }
+  updateSettings(settings: ViewerSettings): void {
+    const previous = this.settings; this.settings = readSettings(settings);
+    this.root.dataset.background = this.settings.background;
+    this.root.style.setProperty('--kmv-background-spacing', `${this.settings.backgroundSpacing}px`);
+    const hint = this.root.querySelector<HTMLElement>('.kmv-hint'); if (hint) hint.hidden = !this.settings.showHints;
+    if (this.initialized && previous.initialFit !== this.settings.initialFit && this.state.mode !== 'manual' && this.resizable) this.fit(this.settings.initialFit);
+    this.autoHeight(this.viewport.clientWidth);
+  }
   pan(dx: number, dy: number): void {
     this.state = constrain(this.native, this.size, { ...this.state, mode: 'manual', x: this.state.x + dx * Math.max(60, this.size.width * .25), y: this.state.y + dy * Math.max(60, this.size.height * .25) }); this.schedule();
   }
@@ -408,6 +459,7 @@ export class ViewportController {
     if (!this.initialized || this.suspended || this.lifetime.disposed) return;
     const { scale, x, y } = this.state;
     this.surface.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    this.options.onScale?.(scale);
     this.root.classList.toggle('kmv-can-pan', this.canPan());
     this.root.classList.toggle('kmv-touch-drag', this.state.mode === 'manual' && this.canPan());
     this.root.dataset.mode = this.state.mode;
