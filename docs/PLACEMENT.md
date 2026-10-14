@@ -2,7 +2,7 @@
 
 - Keep source in a standalone checkout, such as `~/repos/obsidian-mermaid-viewer`.
 - Build into that checkout's `dist/` directory.
-- Installation copies only the three runtime artifacts into `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`. Native validation in an isolated scratch vault is recommended; a prior namespaced build was installed at the owner's explicit request while native QA remained unrun.
+- Installation copies only the three runtime artifacts into `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`. This revision passed native desktop validation in isolated synthetic vaults before the real-vault update. Preserve a backup of the incumbent runtime files; copying files does not establish that the running app loaded or enabled them.
 - Installation preserves `data.json` and unrelated vault settings. The plugin settings tab saves only explicitly changed preferences in its own namespace, preserving unknown keys; failed reads or malformed data prevent a save. Note source changes only after an explicit Save in the Mermaid source editor.
 - Do not build into a live vault or use a live development symlink for validation.
 
