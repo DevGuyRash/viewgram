@@ -24,14 +24,26 @@ Focused browser checks passed all eleven cases using an isolated copy of the ins
 
 The final complete browser run passed 64/64 cases with no failures or skips. The final Node run passed 145/145 checks, including public settings read/save/coalescing/unload behavior, checked source mapping and native-style restoration. TypeScript and the whole plugin/demo build passed; the development taxonomy passed 38 parser cases. Existing browser coverage still decodes all four exported image formats, reads allowed clipboard copies back and checks denied/unavailable fallbacks. Keyword and string colors each met a 4.5:1 contrast check against the actual editor background in light and dark themes. The default light-editor palette exposed a visual defect on the dark background; highlighting now uses host code-color variables with readable viewer fallbacks. The installed host module registry explicitly supplies both `@codemirror/language` and `@lezer/highlight`, which remain external runtime dependencies.
 
-The final browser report is `evidence/browser-results.json`. Earlier bundled-renderer receipts are under `evidence/semantic-native/`; directly inspected earlier node editor, highlighted source, full menu and short-pane captures are under `evidence/ui-v2/`. Current real-app qualification receipts and captures are under `evidence/native-obsidian/`. Generated evidence and host-library copies remain outside tracked source. No hosted CI run was started.
+The full upgrade browser log is `.local/feedback/native-browser-final.log`; earlier complete reports are retained under `evidence/`. Earlier bundled-renderer receipts are under `evidence/semantic-native/`; directly inspected earlier node editor, highlighted source, full menu and short-pane captures are under `evidence/ui-v2/`. The upgrade's real-app qualification receipts and captures are under `evidence/native-obsidian/`; subsequent caret repair evidence is under `evidence/native-caret/`. Generated evidence and host-library copies remain outside tracked source. No hosted CI run was started.
 
 | Current built artifact | SHA-256 |
 | --- | --- |
 | `dist/main.js` | `4ee729dbb88e0e9229cf506c516eeb784e4c4665f3af0c0b15ffd337cae51c46` |
-| `dist/styles.css` | `4de065aa03c914e7797ef27d8942706b57d55d9959e76984532f75863d3f9e08` |
+| `dist/styles.css` | `d85d0dfc7f1d41de77385cf47fdc11aa7c20e432f2893fbeaf6a58a953835cb6` |
 | `dist/manifest.json` | `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c` |
-| `demo/standalone.html` | `d02253057f1f905d2e0ae73d442a1824af0ad332095cbf172e9d9dd27ecf9cf9` |
+| `demo/standalone.html` | `30770f6e63cab54c56b354a3c1a100dfad38ad64d94f7635b4f717ec57337b14` |
+
+### Source caret repair after the upgrade
+
+The user's lightbox-editor report was reproduced in the actual Cyber Glow native app. Clicks on short and wrapped source lines produced the correct CodeMirror selection, DOM selection and caret coordinates against independently measured character ranges. The caret itself was black on the black editor background: native CodeMirror's light-theme rule selected `caret-color: black`, with 1:1 contrast. A scratch-only change to the host text color restored the caret at the same position with 15.02:1 contrast.
+
+The production repair changes one scoped CSS rule: source content uses `caret-color: var(--kmv-text)`, with the existing source-code ancestor giving it sufficient specificity to outrank CodeMirror's base rule. It changes no font, padding, line height, transform, scrolling, selection implementation or source-write behavior. The generated JavaScript and manifest remain byte-identical to the qualified upgrade.
+
+Focused native verification passed actual lightbox click positions, visible caret capture, typing at the clicked offset, drag selection and replacement, native undo, wrap on/off, real horizontal/vertical wheel scrolling, a narrow window and 125% Electron zoom. Cyber Glow and default Obsidian each passed dark/light caret checks; measured caret contrast ranged from 12.19:1 to 15.91:1. Every canceled source session independently preserved the original note through both native vault reads and filesystem bytes, including an unsaved draft. Screenshots retained native caret painting and were directly inspected.
+
+A separate native run loaded the exact previous `4de065…` CSS with the same `4ee729…` JavaScript. The repaired run compared keyword/string token presence and colors with that baseline in all four appearances, and every color matched exactly. Existing light-mode token contrast is below 4.5:1 for some host colors, including string contrast of 2.07:1 in Cyber Glow and 2.61:1 in default Obsidian. These measurements are recorded as an existing palette limitation; this caret repair preserves the chosen syntax colors and makes no new token-contrast claim.
+
+The whole plugin/demo build, TypeScript check and 12 existing focused source-editing browser cases passed. No new repository test framework or broad test expansion was added. The earlier complete upgrade checks above remain a separate qualification checkpoint. Exact local evidence is `evidence/native-caret/diagnosis/receipt.json`, `evidence/native-caret/highlight-baseline/highlight-baseline.json`, `evidence/native-caret/qualified/receipt.json` and `evidence/browser-results-caret-focused.json`; runner snapshots are retained alongside them. The fixed receipt hashes all three files copied into its isolated vault, including the current CSS above, and reports zero page errors. Hosted CI was not run.
 
 ### Native desktop qualification, October 14
 
