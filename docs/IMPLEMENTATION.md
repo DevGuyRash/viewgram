@@ -16,8 +16,8 @@ The current viewer builds on published main `c56fbe9`, retaining the verified Li
 
 ## Still to establish
 
-- Native Obsidian scratch UI acceptance: actual outer-pane sizing, host theme behavior, Reading-view note writes, Live Preview undo, mode changes, virtualization, unload/re-enable and clipboard/export integration.
 - Mica, real mobile keyboards/touch, native relative links, popouts and embeds.
 - Full native-app performance. The isolated SVG microprobe establishes handler work and mutation counts only; it excludes paint and host latency.
+- Larger workspace lifecycle scenarios beyond the focused Reading/Live Preview, plugin reload and unload checks, including prolonged virtualization and many simultaneous panes.
 
-The standalone browser can use the exact installed Mermaid bundle as a development fixture. That fixture does not load the plugin into Obsidian or qualify a real-vault update. Preserve the existing installation and enabled state until the native scratch gate passes.
+The standalone browser can use the exact installed Mermaid bundle as a development fixture. Desktop scratch qualification now also loads the actual plugin into Obsidian 1.14.4 and verifies native source writes, undo, interaction, downloads, clipboard and settings. Installation preserves the user's data and enabled state; runtime activation requires separate confirmation.

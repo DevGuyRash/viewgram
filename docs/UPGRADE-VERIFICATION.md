@@ -24,14 +24,26 @@ Focused browser checks passed all eleven cases using an isolated copy of the ins
 
 The final complete browser run passed 64/64 cases with no failures or skips. The final Node run passed 145/145 checks, including public settings read/save/coalescing/unload behavior, checked source mapping and native-style restoration. TypeScript and the whole plugin/demo build passed; the development taxonomy passed 38 parser cases. Existing browser coverage still decodes all four exported image formats, reads allowed clipboard copies back and checks denied/unavailable fallbacks. Keyword and string colors each met a 4.5:1 contrast check against the actual editor background in light and dark themes. The default light-editor palette exposed a visual defect on the dark background; highlighting now uses host code-color variables with readable viewer fallbacks. The installed host module registry explicitly supplies both `@codemirror/language` and `@lezer/highlight`, which remain external runtime dependencies.
 
-The final browser report is `evidence/browser-results-ui-v2-full-final.json`. Focused native receipts are under `evidence/semantic-native/`; directly inspected node editor, highlighted source, full menu and short-pane captures are under `evidence/ui-v2/`. Generated evidence and host-library copies remain outside tracked source. No hosted CI run was started.
+The final browser report is `evidence/browser-results.json`. Earlier bundled-renderer receipts are under `evidence/semantic-native/`; directly inspected earlier node editor, highlighted source, full menu and short-pane captures are under `evidence/ui-v2/`. Current real-app qualification receipts and captures are under `evidence/native-obsidian/`. Generated evidence and host-library copies remain outside tracked source. No hosted CI run was started.
 
 | Current built artifact | SHA-256 |
 | --- | --- |
-| `dist/main.js` | `558d2a5d05d0c2de3ec6a6a5f3e19a562b932589f2e9ef18358fcb7d3e873c09` |
+| `dist/main.js` | `4ee729dbb88e0e9229cf506c516eeb784e4c4665f3af0c0b15ffd337cae51c46` |
 | `dist/styles.css` | `4de065aa03c914e7797ef27d8942706b57d55d9959e76984532f75863d3f9e08` |
 | `dist/manifest.json` | `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c` |
-| `demo/standalone.html` | `294d8de6f3b1a9cc35ac6770701881e157a2ed734b77faf82ea7ab13de051a00` |
+| `demo/standalone.html` | `d02253057f1f905d2e0ae73d442a1824af0ad332095cbf172e9d9dd27ecf9cf9` |
+
+### Native desktop qualification, October 14
+
+The actual plugin passed in Obsidian 1.14.4, Electron 43.7.9 and Chromium 150.0.7871.250, using the host's Mermaid and CodeMirror modules. The isolated launch pattern was informed by Mica's existing native E2E tooling. Each run used an owned Xvfb display, a fresh separate profile and a synthetic vault; it did not connect to the user's desktop or live vault. No sandbox-disabling launch option was added. The app and owned vault/profile were closed and removed afterward, while synthetic evidence was retained.
+
+Native runs revealed three host-specific defects that standalone Chromium did not expose. Obsidian's settings API can resolve after failed reads/writes, so preferences now reject unread or non-object data and verify the saved file before admitting success; explicit retry rereads current data and preserves unknown keys. Its stream parser exposes legacy token names, so a public CodeMirror view plugin maps those names to the existing host theme colors over visible ranges. Live Preview's outer editable document previously blocked viewer input; interactive ancestor checks now stop at the owned SVG/viewer boundary while retaining native controls and links.
+
+The Reading-view taxonomy run passed all 36 required fixtures through actual native parsing, SVG rendering, measurable geometry, native 100%/whole-chart fit and original SVG/note preservation. The unmeasurable `info` diagnostic correctly stayed unwrapped. The focused run passed 13 behavior cases, and the extended run passed 12. Both Reading and Live Preview saved the intended second fence, refused invalid and stale drafts without changing source, edited escaped node and relationship labels, and retained native rendering. Live Preview preserved an unsaved prefix and supported actual note undo. Real pointer/wheel/keyboard input verified wide/tall chart sizing within the 88% outer-pane cap, presets, scrolling, middle-button panning, resizing and blank-space source editing. Native family hover and source-grounded sequence notes passed; the same SVG survived lightbox movement.
+
+The runs also verified default/Cyber Glow syntax colors, actual SVG/PNG/JPG/WebP downloads with decoded raster pixels, source and PNG readback from Electron's OS clipboard, the native settings window, unknown-key preservation across reload, refusal of malformed/non-object saved data, silent write failure and explicit retry, and unload cleanup. All three receipts report the current `dist/main.js` hash above and zero page errors. The focused receipt intentionally records the expected console errors from malformed-data and denied-write cases; these are evidence of tested refusal paths. Current screenshots were directly inspected. Mobile/touch, Mica coexistence, relative links/popouts, embeds, prolonged virtualization and full-app performance remain outside this desktop qualification.
+
+Exact unmodified receipts are `evidence/native-obsidian/focused/receipt.json`, `evidence/native-obsidian/extended/receipt.json` and `evidence/native-obsidian/taxonomy/receipt.json`. A snapshot of the isolated runner is retained alongside them as local evidence, rather than added as a new repository test framework. The final whole build, TypeScript check, 145 Node checks, 38 development parser cases and 64 browser cases also passed after the native fixes. Hosted workflows remain manual-only and were not run.
 
 ### Large-chart handler probe
 
@@ -49,7 +61,7 @@ Pointer transitions operate on indexed adjacency and affected containment contex
 
 To repeat, serve the existing demo, prepare an ignored baseline bundle from `c56fbe9:src/viewer/semantics.ts` with esbuild using IIFE global name `SemanticBaseline`, output `.local/semantic-baseline.js`, then run `CHROMIUM_PATH=<installed-chromium> node scripts/probe-semantic-performance.mjs`. The probe uses that existing loopback server; it does not launch Obsidian. Remove the owned baseline entry and bundle afterward.
 
-Native Obsidian UI acceptance remains unrun: supported native computer APIs are disabled and Agent Workspace tools are unavailable in this task. No X11 or app-debugging bypass was used. The source branch remains a draft until the scratch gate passes; the previously installed `c56fbe9` artifacts and disabled state are preserved. Reading-view writes and Live Preview undo in these browser cases use explicit synthetic source bridges, not the real vault. A bundled-renderer browser pass does not establish native app acceptance.
+At the earlier browser-only checkpoint, native computer APIs were disabled and Agent Workspace tools were unavailable, so the branch remained a draft and the previous installation was preserved. The subsequent isolated native run above resolves the desktop scratch gate. Earlier browser source bridges remain synthetic and establish only their own scope; the native receipts separately establish actual host writes and Live Preview undo.
 
 ## Previous editor and control corrections
 
@@ -72,7 +84,7 @@ At `c56fbe9`, the whole build and TypeScript check passed. The complete Node run
 | `dist/manifest.json` | `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c` |
 | `demo/standalone.html` | `f4d7c3398b13f1a63c0859dfb7a2cea27643a5c0250f6b35237e74580e6b4d41` |
 
-Native Obsidian qualification remains unrun. A prior namespaced build was installed at the owner's explicit request; that installation does not establish native QA or qualify this newer revision.
+At that checkpoint, native Obsidian qualification remained unrun. A prior namespaced build had been installed at the owner's explicit request; that installation did not establish native QA or qualify the newer revision.
 
 ## Historical artifact identity before the namespace change
 
@@ -137,9 +149,9 @@ The focused control cases exercise real mouse and Chromium touch input in a shor
 
 A separate simulated visual-viewport-only keyboard contraction kept the layout viewport at 390 × 844 while reducing the visible band to 300 pixels with a 300-pixel vertical offset. The editor occupied vertical coordinates 316–584 and its action buttons 535–571, inside that visible band. This verifies the viewport-event layout path; it is not evidence for a real mobile keyboard or an Obsidian mobile host.
 
-## Native Obsidian acceptance remains unrun
+## Earlier native acceptance gap and checklist
 
-The earlier cloud Chromium attempt failed at socket creation with `Operation not permitted`. Local Chromium validation resolves that browser limitation. Native Obsidian UI control was unavailable, so no native acceptance run is claimed. A prior namespaced build was installed by explicit user request despite this qualification gap. Development Mermaid 11.17.2 does not establish compatibility with Obsidian’s installed Mermaid 11.13 renderer; the exact-bundled standalone cases above establish their own subset, not native app acceptance. An isolated Obsidian scratch vault remains the required setting for qualifying this revision:
+The earlier cloud Chromium attempt failed at socket creation with `Operation not permitted`. Local Chromium validation resolved that browser limitation; the October 14 isolated native desktop run above subsequently resolved the desktop app gap. A prior namespaced build had been installed by explicit user request before native QA. Development Mermaid 11.17.2 does not establish compatibility with Obsidian's installed renderer; the current native receipts establish their own host scope. The original checklist below also names mobile and larger workspace scenarios that remain unqualified:
 
 1. Reading and Live Preview: double-click a flowchart label containing quotes, brackets, Unicode and markup-like text; save, inspect actual note bytes, verify native rerender and Live Preview undo. Repeat with sequence, class, state, ER and chart elements using full-source editing. Replace a render while validation or writing is pending; rejection must keep the exact draft editable, and a corrected retry must update only its intended block. Invalid source must leave the note unchanged. A simultaneous note edit or changed file identity must refuse stale writes.
 2. Verify pane-relative natural height, primary whole-chart fit, separate width fit, bottom-right outer-container dragging, keyboard resize, zoom presets and ordinary/modifier wheel behavior; include short narrow panes, parent-only vertical resizing and restoration of a preferred manual height. Check the actual theme/snippet environment for overflow, menu decoration and tooltips. Check touch input and real mobile keyboard contraction, including the focused caret, action buttons and keyboard access to scrolling menus.
