@@ -36,9 +36,11 @@ before(async () => {
     builder.onLoad({ filter: /.*/, namespace: 'synthetic' }, () => ({ contents: `
       export const notices = [];
       export class Notice { constructor(message) { notices.push(message); } }
+      export function normalizePath(path) { return path.split('/').filter(Boolean).join('/'); }
       export class Plugin {
         constructor() {
-          this.app = { workspace: { openLinkText() {} } };
+          this.manifest = { id: 'devguyrash-mermaid-viewer', dir: '.fixture-config/plugins/mermaid-viewer' };
+          this.app = { workspace: { openLinkText() {} }, vault: { adapter: {} } };
           this.settingTabs = []; this.editorExtensions = []; this.postProcessors = [];
         }
         async loadData() { return null; }
@@ -93,11 +95,19 @@ function record(value: unknown): SavedData {
   assert.ok(value !== null && typeof value === 'object' && !Array.isArray(value));
   return structuredClone(value as SavedData);
 }
-function harness(t: TestContext, initial: SavedData = {}) {
+function harness(t: TestContext, initial?: SavedData | null) {
   const plugin = new api.MermaidViewer(), writes: SavedData[] = [];
-  let persisted = record(initial), reads = 0;
-  let read: (call: number) => unknown | Promise<unknown> = () => record(persisted);
+  const settingsPath = '.fixture-config/plugins/mermaid-viewer/data.json';
+  // undefined means no file; null is an existing file containing JSON null.
+  let persisted: SavedData | null | undefined = initial == null ? initial : record(initial), reads = 0;
+  let read: (call: number) => unknown | Promise<unknown> = () => persisted == null ? null : record(persisted);
   let save: (data: SavedData, call: number) => void | Promise<void> = () => {};
+  plugin.app.vault.adapter.exists = async path => { assert.equal(path, settingsPath); return persisted !== undefined; };
+  plugin.app.vault.adapter.read = async path => {
+    assert.equal(path, settingsPath);
+    if (persisted === undefined) throw new Error('Synthetic settings file does not exist.');
+    return JSON.stringify(persisted);
+  };
   plugin.loadData = () => { reads++; return Promise.resolve(read(reads)); };
   plugin.saveData = value => {
     const data = record(value); writes.push(data);
@@ -107,7 +117,7 @@ function harness(t: TestContext, initial: SavedData = {}) {
   };
   t.after(() => { plugin.onunload(); });
   return {
-    plugin, writes, get reads() { return reads; }, get persisted() { return record(persisted); },
+    plugin, writes, get reads() { return reads; }, get persisted() { return persisted == null ? persisted : record(persisted); },
     setRead(next: typeof read) { read = next; }, setSave(next: typeof save) { save = next; },
   };
 }
@@ -237,6 +247,7 @@ test('a synchronous save failure releases the save queue and retries retained re
   await x.plugin.updateSettings({ background: 'dots' });
   assert.deepEqual(x.writes, [{ ...initial, showHints: false }, { ...initial, showHints: false, background: 'dots' }]);
   assert.deepEqual(x.persisted, { ...initial, showHints: false, background: 'dots' });
+  assert.equal(x.reads, 2);
   assert.equal(errors.mock.callCount(), 1); assert.equal(api.notices.length, 1);
 });
 
