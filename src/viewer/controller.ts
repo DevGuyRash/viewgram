@@ -1,6 +1,7 @@
 import { center, constrain, fitted, nativeSize, parsePercent, resized, validSize, zoomAt, type Size, type ViewState } from './math';
 import { Lifetime } from './lifetime';
 import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from './settings';
+import { interactiveAncestor } from './semantics';
 
 export type ViewerActionIcon = 'edit' | 'copy' | 'image' | 'download';
 export interface ViewerActionResult { message: string; feedback?: 'success' | 'warning'; fallback?: { label: string; run(): void } }
@@ -18,7 +19,6 @@ export interface ViewerOptions {
   openLink?: (href: string, newLeaf: boolean) => void;
 }
 const ZOOM_PRESETS = [10, 25, 50, 75, 100, 125, 150, 200, 300, 400];
-const interactive = 'a, summary, button, input, textarea, select, [role="button"], [role="link"], .clickable, [onclick], [contenteditable="true"]';
 let helpId = 0;
 function element(doc: Document, tag: string, className: string, text?: string): HTMLElement {
   const el = doc.createElement(tag); el.className = className; if (text) el.textContent = text; return el;
@@ -276,7 +276,7 @@ export class ViewportController {
     on('focus', (() => this.zoomInput.select()) as EventListener, this.zoomInput);
     on('pointerdown', ((e: PointerEvent) => {
       this.suppressClick = false;
-      const control = (e.target as Element).closest(interactive);
+      const control = interactiveAncestor(e.target, this.viewport);
       if ((e.button !== 0 && e.button !== 1) || !e.isPrimary || (control && !(e.button === 1 && control.matches('a, [role="link"]'))) || !this.canPan() || this.suspended) return;
       // Touch retains vertical document scrolling in width-fit mode. Use 100%/zoom for touch dragging.
       if (e.pointerType === 'touch' && this.state.mode !== 'manual') return;
@@ -305,7 +305,7 @@ export class ViewportController {
     // Keep viewer gestures out of enclosing Mica edit/selection handlers. Links retain direct handlers.
     on('click', ((e: MouseEvent) => {
       const target = (e.target as Element).closest('a.internal-link, a[data-href]');
-      if (target && this.options.openLink) {
+      if (target && this.root.contains(target) && this.options.openLink) {
         const href = target.getAttribute('data-href') || target.getAttribute('href');
         if (href) { e.preventDefault(); this.options.openLink(href, e.ctrlKey || e.metaKey); }
       }
@@ -313,7 +313,7 @@ export class ViewportController {
     }) as EventListener, this.root);
     on('dblclick', ((e: MouseEvent) => {
       const target = e.target as Element;
-      if (!target.closest(interactive)) {
+      if (!interactiveAncestor(target, this.root)) {
         e.preventDefault();
         if (this.options.edit && this.viewport.contains(target) && !target.closest('.kmv-semantic, [data-kmv-kind], [data-kmv-hit-target]')) this.options.edit();
       }
@@ -323,7 +323,7 @@ export class ViewportController {
       if (e.button === 1 && this.suppressClick) { e.preventDefault(); e.stopPropagation(); this.suppressClick = false; }
     }) as EventListener);
     on('wheel', ((e: WheelEvent) => {
-      if (this.suspended || (e.target as Element).closest(interactive)) return;
+      if (this.suspended || interactiveAncestor(e.target, this.viewport)) return;
       const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? this.size.height : 1;
       if (e.ctrlKey || e.metaKey) {
         const rect = this.viewport.getBoundingClientRect();

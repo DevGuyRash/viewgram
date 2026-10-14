@@ -14,7 +14,7 @@ interface Item {
   edge?: { from?: Item; to?: Item; direction: Direction };
 }
 const ignored = 'defs, marker, clipPath, mask, pattern, symbol, style, script';
-const interactive = 'a, button, input, textarea, select, [role="button"], [role="link"], .clickable, [contenteditable="true"], [onclick]';
+const interactive = 'a, summary, button, input, textarea, select, [role="button"], [role="link"], .clickable, [onclick]';
 const drawable = 'rect, circle, ellipse, polygon, polyline, path, line, text, foreignObject, image, use';
 const transient = ['kmv-semantic-active', 'kmv-semantic-related', 'kmv-semantic-dim', 'kmv-semantic-incoming', 'kmv-semantic-outgoing', 'kmv-semantic-both', 'kmv-semantic-undirected'];
 type Emphasis = 'active' | 'context' | Relation | 'related';
@@ -35,6 +35,22 @@ const labelOf = (el: Element): string => {
   visit(el); return parts.join('').replace(/\s+/g, ' ').trim();
 };
 const attr = (el: Element, ...names: string[]): string => names.map(name => el.getAttribute(name)).find(Boolean) || '';
+
+/** Host editors outside the owned island do not make its native SVG interactive. */
+export function interactiveAncestor(target: EventTarget | null | undefined, boundary: Element): Element | undefined {
+  const element = target && (target as Node).nodeType === 1 ? target as Element : undefined;
+  if (!element || !boundary.contains(element)) return undefined;
+  let editable = true;
+  for (let ancestor: Element | null = element; ancestor; ancestor = ancestor.parentElement) {
+    if (ancestor.matches(interactive)) return ancestor;
+    const contentEditable = ancestor.getAttribute('contenteditable')?.toLowerCase();
+    // A noneditable descendant masks editable ancestors, but never native controls.
+    if (contentEditable === 'false') editable = false;
+    else if (editable && (contentEditable === '' || contentEditable === 'true' || contentEditable === 'plaintext-only')) return ancestor;
+    if (ancestor === boundary) break;
+  }
+  return undefined;
+}
 
 export class SemanticHighlighter {
   readonly family: string;
@@ -86,7 +102,7 @@ export class SemanticHighlighter {
     this.listen('pointercancel', () => this.clear());
     this.listen('dblclick', event => {
       const target = this.element(event.target);
-      if (!onEdit || !target || target.closest(interactive) || this.hitTargets.get(target)?.closest(interactive)) return;
+      if (!onEdit || !target || interactiveAncestor(target, svg) || interactiveAncestor(this.hitTargets.get(target), svg)) return;
       const item = this.find(target);
       if (!item) return;
       event.preventDefault(); event.stopPropagation();
@@ -398,7 +414,8 @@ export class SemanticHighlighter {
   private indexFallback(): void {
     // Unknown families keep useful local interaction. Do not infer links from geometry or order.
     for (const el of this.select(drawable)) {
-      if (this.find(el) || el.closest('a, .grid, .tick, .ticks, .axis, .left-axis, .bottom-axis, .top-axis, .actorPopupMenu')) continue;
+      const excluded = el.closest('a, .grid, .tick, .ticks, .axis, .left-axis, .bottom-axis, .top-axis, .actorPopupMenu');
+      if (this.find(el) || (excluded && this.svg.contains(excluded))) continue;
       if (el.matches('.background, .pieOuterCircle, .radarGraticule, .radarAxisLine')) continue;
       let target = el;
       const parent: Element | null = el.parentElement;
@@ -507,7 +524,7 @@ export class SemanticHighlighter {
     // Resolve styles before inserting anything: interleaving each style read with
     // each proxy insertion would repeatedly invalidate the browser's style work.
     for (const el of this.select('path, line, polyline')) {
-      const item = this.find(el); if (!item || el.closest(interactive) || !el.parentElement) continue;
+      const item = this.find(el); if (!item || interactiveAncestor(el, this.svg) || !el.parentElement) continue;
       if (el.localName === 'path' && !item.edge && !el.matches('.actor-line, .task-line')) {
         const native = el as SVGElement;
         const fill = this.svg.ownerDocument.defaultView?.getComputedStyle(el).fill || attr(el, 'fill') || native.style.fill;
