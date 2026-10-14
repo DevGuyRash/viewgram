@@ -195,7 +195,7 @@
 }
 .kmv-source-editor .kmv-source-code .cm-editor { flex: 1 1 auto; min-block-size: 0; min-inline-size: 0; border: 1px solid var(--kmv-border); border-radius: var(--radius-s, 6px); background: var(--kmv-bg); color: var(--kmv-text); text-align: left; }
 .kmv-source-editor .cm-scroller { min-block-size: 0; overflow: auto; font-family: var(--font-monospace, ui-monospace, monospace); font-size: var(--font-text-size, 14px); line-height: 1.5; text-align: left; }
-.kmv-source-editor .cm-content { padding-block: 8px; text-align: left; }
+.kmv-source-editor .kmv-source-code .cm-content { padding-block: 8px; text-align: left; caret-color: var(--kmv-text); }
 .kmv-source-editor .cm-line { padding-inline: 8px; text-align: left; }
 .kmv-source-editor .cm-gutters { border: 0; background: var(--kmv-bg); color: var(--kmv-muted); }
 .kmv-source-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
