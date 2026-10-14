@@ -6,6 +6,7 @@ import type { DiagramSource } from './source';
 import { copyText, copyImage, exportDiagram, downloadFile, DiagramExportError, type DiagramFile, type CopyResult, type ExportFormat } from './export';
 import { Lifetime } from './lifetime';
 import { nativeSize } from './math';
+import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from './settings';
 
 export class DiagramViewer {
   readonly inline: ViewportController;
@@ -15,21 +16,39 @@ export class DiagramViewer {
   private readonly originalStyle: string | null;
   private readonly semantics: SemanticHighlighter;
   private readonly editor?: SourceEditor;
-  constructor(readonly svg: SVGSVGElement, openLink?: (href: string, newLeaf: boolean) => void, private readonly source?: DiagramSource, private readonly editorSessions?: SourceEditorSessions) {
+  private settings: ViewerSettings;
+  private modal?: ViewportController;
+  constructor(readonly svg: SVGSVGElement, openLink?: (href: string, newLeaf: boolean) => void, private readonly source?: DiagramSource, private readonly editorSessions?: SourceEditorSessions, settings: ViewerSettings = { ...DEFAULT_SETTINGS }) {
     const parent = svg.parentNode;
     const native = nativeSize(svg);
     if (!parent || !native) throw new Error('Cannot wrap an unmeasurable or detached SVG.');
     this.originalStyle = svg.getAttribute('style');
+    this.settings = readSettings(settings);
     if (source) this.editor = editorSessions ? editorSessions.create(svg.ownerDocument, source) : new SourceEditor(svg.ownerDocument, source);
     this.semantics = new SemanticHighlighter(svg, target => {
-      if (!this.editor) { this.inline.announce('Source is unavailable for this rendered diagram.'); return; }
-      void this.editor.open(target).catch(error => this.inline.announce(error instanceof Error ? error.message : String(error)));
-    });
+      if (!this.editor) { (this.modal ?? this.inline).announce('Source is unavailable for this rendered diagram.'); return; }
+      void this.editor.open(target).catch(error => (this.modal ?? this.inline).announce(error instanceof Error ? error.message : String(error)));
+    }, { lineHitWidth: this.settings.lineHitWidth, enabled: this.settings.hoverHighlighting });
 
     this.marker = svg.ownerDocument.createComment('mermaid-viewer: original position');
     parent.insertBefore(this.marker, svg);
-    this.inline = new ViewportController(svg, { mode: 'width', nativeMermaidParent: svg.parentElement?.classList.contains('mermaid') === true, open: () => this.open(), openLink, actions: this.actions() }, native);
+    this.inline = new ViewportController(svg, { mode: this.settings.initialFit, resizable: true, settings: this.settings, onScale: scale => this.semantics.setViewportScale(scale), nativeMermaidParent: svg.parentElement?.classList.contains('mermaid') === true, open: () => this.open(), edit: this.editor ? () => this.editChart() : undefined, openLink, actions: this.actions() }, native);
     this.marker.after(this.inline.root);
+    if (source && /sequence/.test(this.semantics.family)) {
+      // Notes can straddle neighboring actors. One source snapshot grounds those
+      // associations without keeping note text or polling the editor.
+      void source.read().then(snapshot => { if (!this.lifetime.disposed) this.semantics.setSource(snapshot.source); }).catch(() => {});
+    }
+  }
+  private editChart(): void {
+    if (this.lifetime.disposed || !this.editor) return;
+    void this.editor.open().catch(error => (this.modal ?? this.inline).announce(error instanceof Error ? error.message : String(error)));
+  }
+  updateSettings(settings: ViewerSettings): void {
+    this.settings = readSettings(settings);
+    this.semantics.setLineHitWidth(this.settings.lineHitWidth);
+    this.semantics.setEnabled(this.settings.hoverHighlighting);
+    this.inline.updateSettings(this.settings); this.modal?.updateSettings(this.settings);
   }
   private fallback(file: DiagramFile): ViewerActionResult['fallback'] {
     return { label: `Save ${file.filename}`, run: () => downloadFile(this.svg.ownerDocument, file.blob, file.filename) };
@@ -75,11 +94,12 @@ export class DiagramViewer {
     const life = new Lifetime();
     this.inline.suspend();
     // Move the original SVG, never clone or re-parse it: IDs and direct link listeners survive.
-    const modal = new ViewportController(this.svg, { mode: 'contain', nativeMermaidParent: this.inline.options.nativeMermaidParent, openLink: this.inline.options.openLink, actions: this.inline.options.actions }, this.inline.native);
+    const modal = this.modal = new ViewportController(this.svg, { mode: 'contain', resizable: false, settings: this.settings, onScale: scale => this.semantics.setViewportScale(scale), edit: this.inline.options.edit, nativeMermaidParent: this.inline.options.nativeMermaidParent, openLink: this.inline.options.openLink, actions: this.inline.options.actions }, this.inline.native);
     dialog.append(header, modal.root); doc.body.append(dialog);
     const finish = (): void => {
       if (!this.closeModal) return;
       this.closeModal = null;
+      this.modal = undefined;
       life.dispose();
       this.inline.resume(); // Return the same node and restore the independent inline state.
       modal.dispose();

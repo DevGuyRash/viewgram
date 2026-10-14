@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const fixture = (page: Page, name: string) => page.locator(`[data-fixture="${name}"] .kmv-viewer`);
 async function action(root: Locator, label: string): Promise<void> {
-  await root.locator('summary').click();
+  await root.getByRole('button', { name: 'Source & export', exact: true }).click();
   await root.getByRole('button', { name: label, exact: true }).click();
 }
 test.beforeEach(async ({ page }) => {
@@ -66,6 +66,7 @@ test('middle-button dragging starts on a native diagram link without opening it'
 
 test('real wheel input pans, modifier zooms, and the bottom boundary releases note scrolling', async ({ page }) => {
   const root = fixture(page, 'tall-flowchart'), viewport = root.locator('.kmv-viewport');
+  await viewport.focus(); await viewport.press('w'); await expect(root).toHaveAttribute('data-mode', 'width');
   await viewport.scrollIntoViewIfNeeded();
   const bounds = (await viewport.boundingBox())!;
   await page.mouse.move(bounds.x + 30, bounds.y + 100);

@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 
 async function mount(page: Page, width = 350, height = 260): Promise<Locator> {
   await page.evaluate(({ width, height }) => {
@@ -42,6 +43,7 @@ test('short narrow native host supports real resize drags and keyboard reset wit
   const before = await height(root); expect(before).toBeLessThan(150);
   await mouseDrag(page, handle, -80); await expect.poll(() => height(root)).toBeLessThan(before);
   const smaller = await height(root); await mouseDrag(page, handle, 60); await expect.poll(() => height(root)).toBeGreaterThan(smaller);
+  await mkdir('evidence/ui-v2', { recursive: true }); await root.screenshot({ path: 'evidence/ui-v2/outer-resize.png', animations: 'disabled' });
   await expect(handle).toBeFocused(); await handle.press('ArrowUp'); await expect.poll(() => height(root)).toBeLessThan(before);
   await handle.press('Home'); await expect.poll(() => height(root)).toBe(before);
   await expect.poll(() => root.evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(260 * .88 + 3);
@@ -74,7 +76,7 @@ test('dynamic viewport resizing retains keyboard access and bounded menus in a n
 });
 
 test('confirmed copy checks are transient and repeated copy failures keep their actionable fallback', async ({ page }) => {
-  const root = await mount(page, 600, 900), summary = root.locator('summary');
+  const root = await mount(page, 600, 900), summary = root.getByRole('button', { name: 'Source & export', exact: true });
   await page.clock.install();
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {} } }));
   for (let iteration = 0; iteration < 2; iteration++) {
