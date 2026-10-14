@@ -1,4 +1,4 @@
-import { MarkdownRenderChild, Notice, Plugin, type MarkdownPostProcessorContext } from 'obsidian';
+import { MarkdownRenderChild, Notice, Plugin, normalizePath, type MarkdownPostProcessorContext } from 'obsidian';
 import { RenderScope } from './viewer/render-scope';
 import { readingSource } from './editor/source-bridge';
 import { livePreviewExtension } from './editor/live-preview';
@@ -70,10 +70,30 @@ export default class MermaidViewer extends Plugin {
     if (!this.saving) this.saving = Promise.resolve().then(() => this.saveSettings());
     return this.saving;
   }
+  private settingsPath(): string {
+    const dir = this.manifest.dir;
+    if (!dir) throw new Error('The viewer plugin directory is unavailable.');
+    return normalizePath(`${dir}/data.json`);
+  }
   private async readStoredData(): Promise<Record<string, unknown>> {
+    const path = this.settingsPath();
     const data: unknown = await this.loadData();
-    if (data !== undefined && data !== null && (typeof data !== 'object' || Array.isArray(data))) throw new Error('Saved viewer preferences are not an object.');
+    // Obsidian returns undefined after a read or JSON error, and null for a missing file.
+    if (data === undefined) throw new Error('Saved viewer preferences could not be read.');
+    if (data === null) {
+      if (await this.app.vault.adapter.exists(path)) throw new Error('Saved viewer preferences are not an object.');
+    } else if (typeof data !== 'object' || Array.isArray(data)) throw new Error('Saved viewer preferences are not an object.');
     return settingsRecord(data);
+  }
+  private async writeStoredData(data: Record<string, unknown>): Promise<void> {
+    const path = this.settingsPath();
+    await this.saveData(data);
+    // saveData can resolve after a failed write; trust it only after reading the owned file.
+    const saved: unknown = JSON.parse(await this.app.vault.adapter.read(path));
+    if (JSON.stringify(saved) !== JSON.stringify(data)) throw new Error('Saved viewer preferences did not match the requested changes.');
+  }
+  private retainPendingChanges(changes: Partial<ViewerSettings>): void {
+    this.pendingChanges = { ...changes, ...this.pendingChanges };
   }
   private async saveSettings(): Promise<void> {
     const lifecycle = this.lifecycle;
@@ -95,11 +115,18 @@ export default class MermaidViewer extends Plugin {
         const changes = this.pendingChanges; this.pendingChanges = undefined;
         const data = { ...this.storedData };
         for (const [key, value] of Object.entries(this.settings)) if (Object.prototype.hasOwnProperty.call(changes, key)) data[key] = value;
-        this.storedData = data;
-        try { await this.saveData(data); }
+        try {
+          await this.writeStoredData(data);
+          if (this.active && lifecycle === this.lifecycle) this.storedData = data;
+        }
         catch (error) {
           console.error('Mermaid Viewer could not save settings.', error);
-          if (this.active && lifecycle === this.lifecycle) new Notice('Mermaid Viewer could not save preferences. Please try again.');
+          if (this.active && lifecycle === this.lifecycle) {
+            this.settingsLoaded = false;
+            this.retainPendingChanges(changes);
+            new Notice('Mermaid Viewer could not save preferences. Please try again.');
+          }
+          return;
         }
       }
     } finally { this.saving = undefined; }
