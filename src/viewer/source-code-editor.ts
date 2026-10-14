@@ -1,8 +1,7 @@
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, type Command } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { syntaxHighlighting } from '@codemirror/language';
-import { mermaidLanguage, mermaidHighlightStyle } from './mermaid-language';
+import { mermaidLanguage, mermaidSourceHighlighting } from './mermaid-language';
 
 const indent = '  ';
 
@@ -23,7 +22,7 @@ export class SourceCodeEditor {
         this.wrap.of(EditorView.lineWrapping),
         lineNumbers(),
         mermaidLanguage,
-        syntaxHighlighting(mermaidHighlightStyle),
+        mermaidSourceHighlighting,
         history(),
         keymap.of([
           { key: 'Enter', run: newline },
