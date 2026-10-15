@@ -26,12 +26,23 @@ The final complete browser run passed 64/64 cases with no failures or skips. The
 
 The full upgrade browser log is `.local/feedback/native-browser-final.log`; earlier complete reports are retained under `evidence/`. Earlier bundled-renderer receipts are under `evidence/semantic-native/`; directly inspected earlier node editor, highlighted source, full menu and short-pane captures are under `evidence/ui-v2/`. The upgrade's real-app qualification receipts and captures are under `evidence/native-obsidian/`; subsequent caret repair evidence is under `evidence/native-caret/`. Generated evidence and host-library copies remain outside tracked source. No hosted CI run was started.
 
-| Current built artifact | SHA-256 |
+| Qualified artifact before MIT packaging | SHA-256 |
 | --- | --- |
 | `dist/main.js` | `4ee729dbb88e0e9229cf506c516eeb784e4c4665f3af0c0b15ffd337cae51c46` |
 | `dist/styles.css` | `d85d0dfc7f1d41de77385cf47fdc11aa7c20e432f2893fbeaf6a58a953835cb6` |
 | `dist/manifest.json` | `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c` |
 | `demo/standalone.html` | `30770f6e63cab54c56b354a3c1a100dfad38ad64d94f7635b4f717ec57337b14` |
+
+### MIT release packaging, October 15
+
+The root license is MIT, copyright 2026 DevGuyRash. The existing plugin/demo build now retains the full license notice in generated JavaScript and CSS. The bounded local `npm run build` passed. Removing only the old/new license headers proves the plugin JavaScript and CSS payloads are byte-identical to the qualified artifacts above; the manifest is byte-identical. This packaging check does not add a new runtime qualification claim or rerun the earlier test campaigns.
+
+| MIT-packaged artifact | SHA-256 |
+| --- | --- |
+| `dist/main.js` | `edb2193ad6d533383e48a8b531e4763799d1aa8f60645d7b3f83368412829549` |
+| `dist/styles.css` | `c9df3d4b12030a84e00f9327f600e9e3dae07d58f861abafd695f48fa81e20ff` |
+| `dist/manifest.json` | `cc0005f2b3d7a1cc4310f7e06ae2410c52e0a4198383cd6435e91a7ca977aa8c` |
+| `demo/standalone.html` | `11424f506802baaf841adeaa57de47f29358e4bb09964b4c9b860fd7f04bfa09` |
 
 ### Source caret repair after the upgrade
 

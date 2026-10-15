@@ -2,8 +2,9 @@
   "name": "obsidian-mermaid-viewer",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
-  "description": "Private native-SVG Mermaid viewport for Obsidian",
+  "description": "Native-SVG Mermaid viewport for Obsidian",
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",

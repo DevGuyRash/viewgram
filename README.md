@@ -1,8 +1,26 @@
 # Mermaid Viewer
 
-Private source for an Obsidian plugin that adds native-scale navigation, semantic interaction, source editing and image export to existing Mermaid SVGs.
+An Obsidian plugin that adds native-scale navigation, semantic interaction, source editing and image export to existing Mermaid SVGs.
 
 Plugin ID: `devguyrash-mermaid-viewer` (formerly `mermaid-viewer`). Display name: Mermaid Viewer. Author: DevGuyRash. Repository and npm package name: `obsidian-mermaid-viewer`.
+
+## Use
+
+Open a note containing a Mermaid code block in Reading view or Live Preview. Mermaid Viewer adds controls to diagrams that Obsidian can render with measurable dimensions; it uses the host's existing renderer.
+
+- Use Fit chart to see the complete diagram, or choose a zoom percentage and pan with the mouse, trackpad or keyboard. Fit width is also available in the presets.
+- Open a lightbox for an independently fitted view. Closing it returns the original SVG to the note.
+- Choose Edit chart or double-click blank chart space to edit the complete source. Double-click an element to inspect its text and relationships; supported, unambiguous labels can be edited directly. Source changes are written only when you choose Save.
+- Use Source & export to copy source or an image, or save SVG, PNG, JPG or WebP. Failed clipboard operations offer a Save fallback.
+- Adjust backgrounds, initial fit, zoom steps, semantic highlighting and line hit width in the plugin's settings.
+
+Desktop behavior has been qualified as described below. Real mobile keyboards/touch and coexistence with Mica remain unqualified.
+
+## Manual installation
+
+Download `main.js`, `manifest.json` and `styles.css` from a release, or build them as described below. Place only those three files in `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`, then reload Obsidian and enable Mermaid Viewer in Community plugins.
+
+When updating an existing installation in this namespace, back up its runtime files and preserve `data.json`. The previous `mermaid-viewer` namespace is separate; do not rename or copy an old plugin folder or its settings. See [placement](docs/PLACEMENT.md).
 
 ## Implementation
 
@@ -55,4 +73,8 @@ The fixture matrix covers 24 recognized diagram families through 36 full-source 
 
 The viewport design was adapted from earlier code owned by the author.
 
-Test diagrams and the minimal hostile-CSS fixture are synthetic. No open-source license is granted or inferred.
+Test diagrams and the minimal hostile-CSS fixture are synthetic.
+
+## License
+
+Copyright (c) 2026 DevGuyRash. Released under the [MIT License](LICENSE).
