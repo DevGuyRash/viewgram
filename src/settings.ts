@@ -1,4 +1,4 @@
-import { PluginSettingTab, Setting, type App, type Plugin, type SettingDefinitionItem } from 'obsidian';
+import { PluginSettingTab, type Setting, type App, type Plugin, type SettingDefinitionItem } from 'obsidian';
 import { DEFAULT_SETTINGS, type ViewerSettings } from './viewer/settings';
 
 export interface SettingsOwner {
@@ -13,8 +13,6 @@ interface SettingGroupDefinition {
 export class ViewgramSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: Plugin, private readonly owner: SettingsOwner) { super(app, plugin); }
   getSettingDefinitions(): SettingDefinitionItem[] { return this.groups(); }
-  // Obsidian before 1.13 ignores definitions and calls this legacy fallback.
-  display(): void { this.renderLegacySettings(); }
   private groups(): SettingGroupDefinition[] {
     return [
       { type: 'group', heading: 'Diagram view', items: [
@@ -35,23 +33,16 @@ export class ViewgramSettingTab extends PluginSettingTab {
         this.slider('Line hover area', 'Invisible area around relationship lines, in pixels. The rendered line keeps its native appearance.', 'lineHitWidth', 6, 30, 2),
         { name: 'Restore defaults', desc: 'Restore viewer preferences for open and future diagrams.', render: setting => { setting.addButton(control => control.setButtonText('Restore defaults').onClick(async () => {
           const saved = this.owner.updateSettings({ ...DEFAULT_SETTINGS });
-          if (typeof this.update === 'function') this.update(); else this.renderLegacySettings();
+          this.update();
           await saved;
         })); } },
       ] },
     ];
   }
-  private renderLegacySettings(): void {
-    this.containerEl.empty();
-    for (const group of this.groups()) {
-      this.containerEl.createEl('h3', { text: group.heading });
-      for (const item of group.items) item.render(new Setting(this.containerEl).setName(item.name).setDesc(item.desc));
-    }
-  }
   private slider(name: string, desc: string, key: 'backgroundSpacing' | 'zoomStep' | 'lineHitWidth', min: number, max: number, step: number): SettingGroupDefinition['items'][number] {
     return { name, desc, render: setting => { setting.addSlider(control => {
       control.setLimits(min, max, step).setValue(this.owner.settings[key]);
-      // Current hosts show values inline; retain value feedback on older hosts.
+      // Keep the native slider title aligned with its current value.
       control.sliderEl.title = String(this.owner.settings[key]);
       control.onChange(async value => { control.sliderEl.title = String(value); await this.owner.updateSettings({ [key]: value }); });
     }); } };
