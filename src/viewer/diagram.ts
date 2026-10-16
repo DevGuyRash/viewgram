@@ -30,7 +30,7 @@ export class DiagramViewer {
       void this.editor.open(target).catch(error => (this.modal ?? this.inline).announce(error instanceof Error ? error.message : String(error)));
     }, { lineHitWidth: this.settings.lineHitWidth, enabled: this.settings.hoverHighlighting });
 
-    this.marker = svg.ownerDocument.createComment('mermaid-viewer: original position');
+    this.marker = svg.ownerDocument.createComment('viewgram: original position');
     parent.insertBefore(this.marker, svg);
     this.inline = new ViewportController(svg, { mode: this.settings.initialFit, resizable: true, settings: this.settings, onScale: scale => this.semantics.setViewportScale(scale), nativeMermaidParent: svg.parentElement?.classList.contains('mermaid') === true, open: () => this.open(), edit: this.editor ? () => this.editChart() : undefined, openLink, actions: this.actions() }, native);
     this.marker.after(this.inline.root);

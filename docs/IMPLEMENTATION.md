@@ -1,6 +1,10 @@
-# Implementation status
+# Viewgram implementation status
 
-The current viewer builds on published main `c56fbe9`. It augments Obsidian's existing SVG and source lifecycle. Exact checks, artifact identities and native qualification limits are recorded in [upgrade verification](UPGRADE-VERIFICATION.md).
+The pre-rename viewer implementation builds on main `c56fbe9`. It augments Obsidian's existing SVG and source lifecycle. Historical checks, artifact identities and native qualification limits are recorded in [upgrade verification](UPGRADE-VERIFICATION.md).
+
+The current source and metadata identify the project as Viewgram, plugin ID `viewgram`, author DevGuyRash and repository `DevGuyRash/viewgram`. Existing build output, release staging, generated previews and installed copies have not been rebuilt or qualified as Viewgram. Builds, release preparation and installation remain paused under the storage-capacity hold; do not retag or copy earlier artifacts as a Viewgram release.
+
+The explicit `scripts/migrate-settings.mjs` helper is prepared for later installation. It accepts only the confirmed DevGuyRash `devguyrash-mermaid-viewer` namespace, backs up and preserves original settings, refuses target settings that already exist, and leaves enabled-plugin lists untouched. It does not inspect or copy third-party `mermaid-viewer` installations. Preparing the helper does not migrate an installed runtime or activate Viewgram; see [placement](PLACEMENT.md).
 
 ## Implemented
 
@@ -20,4 +24,4 @@ The current viewer builds on published main `c56fbe9`. It augments Obsidian's ex
 - Full native-app performance. The isolated SVG microprobe establishes handler work and mutation counts only; it excludes paint and host latency.
 - Larger workspace lifecycle scenarios beyond the focused Reading/Live Preview, plugin reload and unload checks, including prolonged virtualization and many simultaneous panes.
 
-The standalone browser can use the exact installed Mermaid bundle as a development fixture. Desktop scratch qualification now also loads the actual plugin into Obsidian 1.14.4 and verifies native source writes, undo, interaction, downloads, clipboard and settings. Installation preserves the user's data and enabled state; runtime activation requires separate confirmation.
+The standalone browser can use the exact installed Mermaid bundle as a development fixture. Earlier desktop scratch qualification loaded the pre-rename plugin into Obsidian 1.14.4 and verified native source writes, undo, interaction, downloads, clipboard and settings. Those results do not qualify Viewgram artifacts. Later installation must preserve the user's data and keep runtime activation explicit.

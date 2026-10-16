@@ -5,7 +5,7 @@ export interface SettingsOwner {
   settings: ViewerSettings;
   updateSettings(changes: Partial<ViewerSettings>): Promise<void>;
 }
-export class MermaidViewerSettingTab extends PluginSettingTab {
+export class ViewgramSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: Plugin, private readonly owner: SettingsOwner) { super(app, plugin); }
   display(): void {
     this.containerEl.empty();

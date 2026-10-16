@@ -22,7 +22,7 @@
   position: relative; margin: 12px 0; border: 1px solid var(--kmv-border); border-radius: var(--kmv-radius);
   background: var(--kmv-bg); line-height: 1.4;
 }
-/* Kingdom ui-misc has broad overflow rules; only the viewport clips the SVG. */
+/* synthetic host ui-misc has broad overflow rules; only the viewport clips the SVG. */
 .kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { overflow: hidden !important; }
 .kmv-viewer .kmv-viewport {
   position: relative; height: 300px; min-height: var(--kmv-viewport-min-height, 150px); width: 100%; flex: 1 0 auto;

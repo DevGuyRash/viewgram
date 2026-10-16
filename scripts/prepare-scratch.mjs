@@ -34,9 +34,9 @@ for(const field of ['id','name','author','version']) {
 const plugin=join(target,'.obsidian','plugins',pluginId);
 await mkdir(plugin,{recursive:true});
 for(const file of ['main.js','manifest.json','styles.css']) await copyFile(join('dist',file),join(plugin,file));
-let note='# Mermaid viewer acceptance\n\nSynthetic fixtures only. Enable Mermaid Viewer manually in this scratch vault.\n\n';
+let note='# Viewgram acceptance\n\nSynthetic fixtures only. Enable Viewgram manually in this scratch vault.\n\n';
 for(const name of ['wide-flowchart','tall-flowchart','branching-flowchart','sequence']) note+=`## ${name}\n\n\`\`\`mermaid\n${await readFile(join('fixtures',name+'.mmd'),'utf8')}\n\`\`\`\n\n`;
-await writeFile(join(target,'Mermaid viewer acceptance.md'),note);
+await writeFile(join(target,'Viewgram acceptance.md'),note);
 const matrix=JSON.parse(await readFile('fixtures/taxonomy.json','utf8'));
 let matrixNote='# Native Mermaid type acceptance\n\nTarget: Obsidian 1.14.4 / Mermaid 11.13.0 with the installed patch. Detection is verified; native parsing, SVG and viewer checks remain pending. First inspect with the viewer disabled, then enable it and compare the same note.\n\n';
 for(const fixture of matrix.fixtures){
@@ -46,5 +46,5 @@ for(const fixture of matrix.fixtures){
 matrixNote+='## Unsupported native families\n\nThese starter probes are recorded as unsupported by the installed native renderer, not viewer failures. Do not replace the renderer to make them pass.\n\n';
 for(const fixture of matrix.fixtures.filter(x=>x.scope==='recognition-only'))matrixNote+=`- ${fixture.id}: ${fixture.nativeRecognition}\n`;
 await writeFile(join(target,'Mermaid type acceptance.md'),matrixNote);
-await writeFile(join(target,'SCRATCH-ONLY.txt'),'Private acceptance vault. No live Kingdom data, Mica source, settings or symlinks. Plugin installed but not enabled.\n');
+await writeFile(join(target,'SCRATCH-ONLY.txt'),'Private acceptance vault. No live-vault data, other plugin source, settings or symlinks. Plugin installed but not enabled.\n');
 console.log(`Prepared new isolated scratch vault: ${target}\nPlugin enablement remains a manual acceptance step.`);

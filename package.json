@@ -1,10 +1,10 @@
 {
-  "name": "obsidian-mermaid-viewer",
+  "name": "viewgram",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Native-SVG Mermaid viewport for Obsidian",
+  "description": "Native-SVG diagram navigation and source editing for Obsidian",
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
@@ -32,5 +32,13 @@
   "overrides": {
     "moment": "2.31.0",
     "katex": "0.18.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevGuyRash/viewgram.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DevGuyRash/viewgram/issues"
+  },
+  "homepage": "https://github.com/DevGuyRash/viewgram#readme"
 }

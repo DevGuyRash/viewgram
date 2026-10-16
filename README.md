@@ -1,12 +1,12 @@
-# Mermaid Viewer
+# Viewgram
 
 An Obsidian plugin that adds native-scale navigation, semantic interaction, source editing and image export to existing Mermaid SVGs.
 
-Plugin ID: `devguyrash-mermaid-viewer` (formerly `mermaid-viewer`). Display name: Mermaid Viewer. Author: DevGuyRash. Repository and npm package name: `obsidian-mermaid-viewer`.
+Plugin ID: `viewgram`. Display name: Viewgram. Author: DevGuyRash. Repository: [DevGuyRash/viewgram](https://github.com/DevGuyRash/viewgram). npm package name: `viewgram`.
 
 ## Use
 
-Open a note containing a Mermaid code block in Reading view or Live Preview. Mermaid Viewer adds controls to diagrams that Obsidian can render with measurable dimensions; it uses the host's existing renderer.
+Open a note containing a Mermaid code block in Reading view or Live Preview. Viewgram adds controls to diagrams that Obsidian can render with measurable dimensions; it uses the host's existing renderer.
 
 - Use Fit chart to see the complete diagram, or choose a zoom percentage and pan with the mouse, trackpad or keyboard. Fit width is also available in the presets.
 - Open a lightbox for an independently fitted view. Closing it returns the original SVG to the note.
@@ -18,9 +18,19 @@ Desktop behavior has been qualified as described below. Real mobile keyboards/to
 
 ## Manual installation
 
-Download `main.js`, `manifest.json` and `styles.css` from a release, or build them as described below. Place only those three files in `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`, then reload Obsidian and enable Mermaid Viewer in Community plugins.
+Builds and installation are paused under the storage-capacity hold. The Viewgram rename updates source and metadata; existing `dist/`, release staging, generated previews and installed copies are not rebuilt or qualified as Viewgram. Do not retag or copy old artifacts as a Viewgram release.
 
-When updating an existing installation in this namespace, back up its runtime files and preserve `data.json`. The previous `mermaid-viewer` namespace is separate; do not rename or copy an old plugin folder or its settings. See [placement](docs/PLACEMENT.md).
+After the hold is cleared and later validation is authorized, use freshly built and verified `main.js`, `manifest.json` and `styles.css`, or download those files from a verified Viewgram release. Place only those three runtime files in `<vault>/.obsidian/plugins/viewgram/`, preserve any `data.json`, then enable Viewgram in Community plugins. Use the actual Obsidian configuration directory if it has a custom name.
+
+For an existing, confirmed DevGuyRash installation with ID `devguyrash-mermaid-viewer`, disable that plugin and close Obsidian before migrating its settings. From the Viewgram source checkout, pass the actual absolute configuration-directory path:
+
+```sh
+node scripts/migrate-settings.mjs "/absolute/vault/.obsidian"
+```
+
+The helper verifies the legacy manifest's ID and author and requires object-shaped settings JSON. It creates a unique owner-only backup in the legacy folder, then copies the original settings bytes to `plugins/viewgram/data.json` without replacing existing target data. It refuses symlinks and a mismatched publisher, preserves unknown settings keys, and does not change enabled-plugin lists. If there is no legacy `data.json`, no settings migration is needed. Keep the old folder and backups for rollback, and ensure the old plugin is disabled before enabling Viewgram.
+
+The third-party `mermaid-viewer` namespace is separate. The helper does not inspect or copy it; do not infer ownership from that ID or display name. See [placement](docs/PLACEMENT.md).
 
 ## Implementation
 
@@ -37,7 +47,7 @@ When updating an existing installation in this namespace, back up its runtime fi
 
 ## Build
 
-Node 22+ and npm:
+Run these commands only after the storage-capacity hold is cleared and a build is authorized. Node 22+ and npm:
 
 ```sh
 npm ci --ignore-scripts
@@ -46,11 +56,13 @@ npm run build
 
 Only `dist/main.js`, `dist/manifest.json` and `dist/styles.css` are runtime artifacts. Obsidian and CodeMirror are supplied by the host, not bundled. The demo's Mermaid dependency is development-only.
 
-Source checkout belongs outside a vault. Installation uses `<vault>/.obsidian/plugins/devguyrash-mermaid-viewer/`. The ID change does not rename or copy an old `mermaid-viewer` folder, its data or its enabled state. Settings are loaded and saved only in this plugin's namespace; no legacy settings migration runs automatically. A build does not install or enable anything. See [placement](docs/PLACEMENT.md).
+Source checkout belongs outside a vault, for example `~/repos/viewgram`. Installation uses `<vault>/.obsidian/plugins/viewgram/`. Settings are loaded and saved only in this namespace; the explicit helper above is the only supported migration from the confirmed `devguyrash-mermaid-viewer` installation. No settings migration runs automatically, and a build does not install or enable anything. Leave third-party `mermaid-viewer` folders, data and enabled state untouched. See [placement](docs/PLACEMENT.md).
 
 ## Current status
 
-The upgrade builds on main `c56fbe9`. Its completed qualification passed the plugin/demo build, TypeScript check, 145 Node checks, 38 development parser cases and all 64 browser cases. Eleven browser cases use the exact installed Mermaid 11.13 bundle as an isolated fixture; it is not shipped with the plugin. A subsequent scoped caret-color repair addresses an invisible black caret on dark source-editor backgrounds. Current artifacts, focused repair evidence and qualification limits are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md).
+The Viewgram change is a source and metadata rename. Build, release, installation and enablement remain pending; existing artifacts retain their earlier identity until rebuilt after the storage-capacity hold. No rebuild or new qualification is claimed for Viewgram.
+
+The pre-rename upgrade builds on main `c56fbe9`. Its completed qualification passed the plugin/demo build, TypeScript check, 145 Node checks, 38 development parser cases and all 64 browser cases. Eleven browser cases use the exact installed Mermaid 11.13 bundle as an isolated fixture; it is not shipped with the plugin. A subsequent scoped caret-color repair addresses an invisible black caret on dark source-editor backgrounds. Historical artifacts, focused repair evidence and qualification limits are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md); those receipts do not qualify renamed artifacts.
 
 Desktop qualification also passed inside Obsidian 1.14.4 in isolated synthetic vaults: all 36 required native diagram fixtures, 13 focused behavior cases and 12 extended cases. Reading and Live Preview exercised actual note writes, unsaved text and undo, invalid/stale-source refusal, gestures and pane sizing, default/Cyber Glow syntax colors, semantic hover, native downloads, OS clipboard readback, settings failure recovery and unload. The native runs exposed and resolved host settings error handling, legacy syntax-token highlighting and outer editor interference with Live Preview gestures. Native acceptance qualifies the built files; installation and enablement are separate operations. A sparse-chain SVG microprobe confirmed bounded local highlight mutations; it excludes paint and app latency. Mica, real mobile keyboards/touch, native relative links/popouts, embeds and full-app performance remain unqualified.
 

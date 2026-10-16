@@ -2,12 +2,12 @@ import { test, before, beforeEach, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { Window } from 'happy-dom';
-import type MermaidViewer from '../src/main';
-import type { MermaidViewerSettingTab } from '../src/settings';
+import type Viewgram from '../src/main';
+import type { ViewgramSettingTab } from '../src/settings';
 
 type SavedData = Record<string, unknown>;
-type SyntheticPlugin = MermaidViewer & {
-  settingTabs: MermaidViewerSettingTab[];
+type SyntheticPlugin = Viewgram & {
+  settingTabs: ViewgramSettingTab[];
   editorExtensions: unknown[];
   postProcessors: unknown[];
   settingsContainer?: HTMLElement;
@@ -19,7 +19,7 @@ interface SettingControl {
   click?: () => Promise<void>;
 }
 let api: {
-  MermaidViewer: new () => SyntheticPlugin;
+  Viewgram: new () => SyntheticPlugin;
   notices: string[];
   controls(container: HTMLElement): SettingControl[];
   clearControls(container: HTMLElement): void;
@@ -29,7 +29,7 @@ let api: {
 // source-bridge.test.ts. No vault, editor, or real Obsidian settings are involved.
 before(async () => {
   const compiled = await build({ stdin: {
-    contents: 'export {default as MermaidViewer} from "./src/main"; export {notices, controls, clearControls} from "obsidian";',
+    contents: 'export {default as Viewgram} from "./src/main"; export {notices, controls, clearControls} from "obsidian";',
     resolveDir: process.cwd(),
   }, bundle: true, write: false, platform: 'node', format: 'esm', plugins: [{ name: 'synthetic-obsidian', setup(builder) {
     builder.onResolve({ filter: /^obsidian$/ }, () => ({ path: 'obsidian', namespace: 'synthetic' }));
@@ -39,7 +39,7 @@ before(async () => {
       export function normalizePath(path) { return path.split('/').filter(Boolean).join('/'); }
       export class Plugin {
         constructor() {
-          this.manifest = { id: 'devguyrash-mermaid-viewer', dir: '.fixture-config/plugins/mermaid-viewer' };
+          this.manifest = { id: 'viewgram', dir: '.fixture-config/plugins/viewgram' };
           this.app = { workspace: { openLinkText() {} }, vault: { adapter: {} } };
           this.settingTabs = []; this.editorExtensions = []; this.postProcessors = [];
         }
@@ -96,8 +96,8 @@ function record(value: unknown): SavedData {
   return structuredClone(value as SavedData);
 }
 function harness(t: TestContext, initial?: SavedData | null) {
-  const plugin = new api.MermaidViewer(), writes: SavedData[] = [];
-  const settingsPath = '.fixture-config/plugins/mermaid-viewer/data.json';
+  const plugin = new api.Viewgram(), writes: SavedData[] = [];
+  const settingsPath = '.fixture-config/plugins/viewgram/data.json';
   // undefined means no file; null is an existing file containing JSON null.
   let persisted: SavedData | null | undefined = initial == null ? initial : record(initial), reads = 0;
   let read: (call: number) => unknown | Promise<unknown> = () => persisted == null ? null : record(persisted);

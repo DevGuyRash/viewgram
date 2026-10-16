@@ -7,12 +7,12 @@ import { promisify } from 'node:util';
 
 const run = promisify(execFile);
 const script = resolve('scripts/prepare-scratch.mjs');
-const pluginId = 'devguyrash-mermaid-viewer';
-const identity = { id: pluginId, name: 'Mermaid Viewer', author: 'DevGuyRash', version: '0.1.0' };
+const pluginId = 'viewgram';
+const identity = { id: pluginId, name: 'Viewgram', author: 'DevGuyRash', version: '0.1.0' };
 const artifacts = { 'main.js': '// Synthetic test artifact; never executed.\n', 'styles.css': '/* Synthetic test artifact. */\n' };
 
 async function fixture(t: TestContext) {
-  const root = await mkdtemp('/tmp/mermaid-viewer-id-');
+  const root = await mkdtemp('/tmp/viewgram-id-');
   t.after(() => rm(root, { recursive: true, force: true }));
   const project = join(root, 'project');
   await mkdir(join(project, 'dist'), { recursive: true });

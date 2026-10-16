@@ -85,7 +85,7 @@ test('controls do not bubble into enclosing note editor',()=>{
  assert.equal(clicks,0);assert.equal(doubles,0);v.dispose();
 });
 
-test('Kingdom overflow override leaves modal geometry and manual-touch overrides effective',async()=>{
+test('synthetic host overflow override leaves modal geometry and manual-touch overrides effective',async()=>{
  const style=window.document.createElement('style');style.textContent=readFileSync('src/styles.css','utf8')+'\n'+readFileSync('tests/fixtures/host-overflow.css','utf8');window.document.head.append(style);
  const {host,svg}=svgHost();host.classList.add('markdown-preview-section');const v=new DiagramViewer(svg);await tick();
  assert.equal(window.getComputedStyle(v.inline.viewport as any).overflow,'hidden');
