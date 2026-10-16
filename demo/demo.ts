@@ -12,6 +12,7 @@ import { SemanticHighlighter } from '../src/viewer/semantics';
 import { SourceEditorSessions } from '../src/viewer/source-editor-sessions';
 import type { DiagramSource } from '../src/viewer/source';
 import { waitForViewportReady } from '../src/viewer/readiness';
+import { createHtmlElement } from '../src/viewer/dom';
 import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from '../src/viewer/settings';
 
 const scopes: RenderScope[] = [];
@@ -46,7 +47,7 @@ for (const name of names) {
   sources[name] = (await mermaid.render(`fixture_${name.replaceAll('-', '_')}`, source)).svg;
 }
 function mount(name: string, target: HTMLElement): RenderScope {
-  const container = document.createElement('div'); container.className = 'mermaid';
+  const container = createHtmlElement(document, 'div', 'mermaid');
   // Only locally generated, synthetic test fixtures. Production never parses SVG strings.
   container.append(document.importNode(new DOMParser().parseFromString(sources[name]!, 'image/svg+xml').documentElement, true));
   target.append(container);
@@ -77,14 +78,12 @@ let dynamicScope: RenderScope | undefined;
 const dynamic = document.querySelector<HTMLElement>('#dynamic')!;
 document.querySelector('#mount')!.addEventListener('click', () => { if (!dynamicScope) dynamicScope = mount('dynamic', dynamic); });
 document.querySelector('#unmount')!.addEventListener('click', () => { dynamicScope?.dispose(); dynamicScope = undefined; dynamic.replaceChildren(); });
-Object.assign(window, {
-  demo: {
+window.demo = {
     scopes, sources, sessions, mount, DiagramViewer, RenderScope, SourceEditor, SourceEditorSessions, SemanticHighlighter, EditorView,
     DEFAULT_SETTINGS, readSettings, setSettings, getSettings: () => ({ ...viewerSettings }),
     disposeAll: () => { sessions.dispose(); scopes.forEach(scope => scope.dispose()); },
     ready: true,
-  },
-});
+};
 document.documentElement.dataset.ready = 'true';
 
 // Explicit taxonomy workbench. It is idle until requested and never changes a vault.
@@ -94,9 +93,9 @@ const taxonomyPreview = document.querySelector<HTMLElement>('#taxonomy-preview')
 const taxonomyStatus = document.querySelector<HTMLElement>('#taxonomy-status')!;
 document.querySelector('#taxonomy-version')!.textContent = `Development renderer: Mermaid ${developmentMermaidVersion}. Native target: Obsidian ${taxonomy.nativeRenderer.obsidian_version}, Mermaid 11.13.0 (patched).`;
 for (const item of taxonomy.fixtures) {
- const option=document.createElement('option');option.value=item.id;option.textContent=`${item.id} · ${item.nativeRecognition === 'unsupported' ? 'unsupported by native renderer' : item.scope}`;taxonomySelect.append(option);
+ const option=createHtmlElement(document,'option');option.value=item.id;option.textContent=`${item.id} · ${item.nativeRecognition === 'unsupported' ? 'unsupported by native renderer' : item.scope}`;taxonomySelect.append(option);
 }
-type TypeResult = { id: string; recognition: string; parse: string; svg: string; viewer: string; message?: string; textPreserved?: boolean; nativeRecognition: string; scale?: number };
+export type TypeResult = { id: string; recognition: string; parse: string; svg: string; viewer: string; message?: string; textPreserved?: boolean; nativeRecognition: string; scale?: number };
 let taxonomyScope: RenderScope | undefined;
 let originalSvg: SVGSVGElement | undefined;
 let originalText='';
@@ -115,7 +114,7 @@ async function showOriginal(id: string): Promise<TypeResult> {
  try{
   const rendered=await mermaid.render(`taxonomy_${++renderCount}_${id.replaceAll('-','_')}`,fixture.sourceText);
   const parsed=new DOMParser().parseFromString(rendered.svg,'image/svg+xml').documentElement;
-  const host=document.createElement('div');host.className='mermaid';host.append(document.importNode(parsed,true));taxonomyPreview.append(host);
+  const host=createHtmlElement(document,'div','mermaid');host.append(document.importNode(parsed,true));taxonomyPreview.append(host);
   originalSvg=host.querySelector('svg')!;originalText=originalSvg.textContent||'';result.svg='pass';
  }catch(error){result.svg='fail';result.message=String(error);}
  return result;
@@ -151,10 +150,15 @@ async function runTypeCase(id: string): Promise<TypeResult> {
  finally{taxonomyBusy=false;}
 }
 let selectedResult: TypeResult | undefined;
-document.querySelector('#taxonomy-original')!.addEventListener('click',async()=>{if(taxonomyBusy)return;taxonomyBusy=true;try{selectedResult=await showOriginal(taxonomySelect.value);taxonomyStatus.textContent=JSON.stringify(selectedResult,null,2);}finally{taxonomyBusy=false;}});
-document.querySelector('#taxonomy-attach')!.addEventListener('click',async()=>{if(taxonomyBusy||!selectedResult)return;taxonomyBusy=true;try{selectedResult=await attachTypeViewer(selectedResult);taxonomyStatus.textContent=JSON.stringify(selectedResult,null,2);}finally{taxonomyBusy=false;}});
-document.querySelector('#taxonomy-run')!.addEventListener('click',async()=>{
+function onTaxonomyClick(selector: string, action: () => Promise<void>): void {
+ document.querySelector(selector)!.addEventListener('click', () => {
+  void action().catch((error: unknown) => { taxonomyStatus.textContent = String(error); });
+ });
+}
+onTaxonomyClick('#taxonomy-original',async()=>{if(taxonomyBusy)return;taxonomyBusy=true;try{selectedResult=await showOriginal(taxonomySelect.value);taxonomyStatus.textContent=JSON.stringify(selectedResult,null,2);}finally{taxonomyBusy=false;}});
+onTaxonomyClick('#taxonomy-attach',async()=>{if(taxonomyBusy||!selectedResult)return;taxonomyBusy=true;try{selectedResult=await attachTypeViewer(selectedResult);taxonomyStatus.textContent=JSON.stringify(selectedResult,null,2);}finally{taxonomyBusy=false;}});
+onTaxonomyClick('#taxonomy-run',async()=>{
  if(taxonomyBusy)return;typeResults.length=0;selectedResult=undefined;
  for(const fixture of taxonomy.fixtures){const result=await runTypeCase(fixture.id);typeResults.push(result);taxonomyStatus.textContent=typeResults.map(x=>`${x.id}: recognition=${x.recognition}, parse=${x.parse}, SVG=${x.svg}, viewer=${x.viewer}`).join('\n');}
 });
-Object.assign((window as any).demo,{taxonomy,runTypeCase,typeResults,showOriginal,attachTypeViewer});
+window.demo = { ...window.demo, taxonomy, runTypeCase, typeResults, showOriginal, attachTypeViewer };

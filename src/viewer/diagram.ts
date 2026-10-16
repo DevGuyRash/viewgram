@@ -3,10 +3,11 @@ import { SemanticHighlighter } from './semantics';
 import { SourceEditor } from './source-editor';
 import type { SourceEditorSessions } from './source-editor-sessions';
 import type { DiagramSource } from './source';
-import { copyText, copyImage, exportDiagram, downloadFile, DiagramExportError, type DiagramFile, type CopyResult, type ExportFormat } from './export';
+import { copyText, copyImage, exportDiagram, downloadFile, DiagramExportError, type DiagramFile, type CopyResult } from './export';
 import { Lifetime } from './lifetime';
 import { nativeSize } from './math';
 import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from './settings';
+import { createHtmlElement } from './dom';
 
 export class DiagramViewer {
   readonly inline: ViewportController;
@@ -60,12 +61,13 @@ export class DiagramViewer {
   }
   private actions(): ViewerAction[] {
     const actions: ViewerAction[] = [];
-    if (this.source && this.editor) {
-      actions.push({ text: 'Edit Mermaid source', label: 'Edit Mermaid source', icon: 'edit', run: () => this.editor!.open() });
-      actions.push({ text: 'Copy source', label: 'Copy Mermaid source', icon: 'copy', run: async () => this.copied(await copyText(this.svg.ownerDocument, (await this.source!.read()).source)) });
+    const source = this.source, editor = this.editor;
+    if (source && editor) {
+      actions.push({ text: 'Edit Mermaid source', label: 'Edit Mermaid source', icon: 'edit', run: () => editor.open() });
+      actions.push({ text: 'Copy source', label: 'Copy Mermaid source', icon: 'copy', run: async () => this.copied(await copyText(this.svg.ownerDocument, (await source.read()).source)) });
     }
     actions.push({ text: 'Copy image', label: 'Copy diagram image', icon: 'image', run: async () => { this.semantics.clear(); return this.copied(await copyImage(this.svg)); } });
-    for (const format of ['svg', 'png', 'jpg', 'webp'] as ExportFormat[]) actions.push({ text: `Save ${format.toUpperCase()}`, label: `Save diagram as ${format.toUpperCase()}`, icon: 'download', run: async () => {
+    for (const format of ['svg', 'png', 'jpg', 'webp'] as const) actions.push({ text: `Save ${format.toUpperCase()}`, label: `Save diagram as ${format.toUpperCase()}`, icon: 'download', run: async () => {
       this.semantics.clear();
       try {
         const file = await exportDiagram(this.svg, format);
@@ -82,13 +84,13 @@ export class DiagramViewer {
     if (this.lifetime.disposed || this.closeModal) return;
     const doc = this.svg.ownerDocument;
     const previousFocus = doc.activeElement as HTMLElement | null;
-    const dialog = doc.createElement('dialog');
+    const dialog = createHtmlElement(doc, 'dialog');
     dialog.className = 'kmv-dialog';
     dialog.setAttribute('aria-label', 'Mermaid diagram lightbox');
-    const header = doc.createElement('div'); header.className = 'kmv-dialog-header';
-    const title = doc.createElement('h2'); title.textContent = 'Diagram';
-    const subtitle = doc.createElement('span'); subtitle.textContent = 'Pan and zoom'; subtitle.className = 'kmv-dialog-subtitle';
-    const close = doc.createElement('button'); close.type = 'button'; close.className = 'kmv-button kmv-close';
+    const header = createHtmlElement(doc, 'div'); header.className = 'kmv-dialog-header';
+    const title = createHtmlElement(doc, 'h2'); title.textContent = 'Diagram';
+    const subtitle = createHtmlElement(doc, 'span'); subtitle.textContent = 'Pan and zoom'; subtitle.className = 'kmv-dialog-subtitle';
+    const close = createHtmlElement(doc, 'button'); close.type = 'button'; close.className = 'kmv-button kmv-close';
     close.textContent = 'Close ×'; close.setAttribute('aria-label', 'Close diagram lightbox');
     header.append(title, subtitle, close);
     const life = new Lifetime();

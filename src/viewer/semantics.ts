@@ -1,5 +1,6 @@
 import { SequenceGeometry } from './sequence-geometry';
 import { sequenceAssociations } from './source-mapping';
+import { createSvgElement } from './dom';
 
 /** Semantic interaction over the original SVG. Never imports Mermaid or rebuilds its DOM. */
 export interface SemanticTarget { id: string; label: string; kind: string }
@@ -375,7 +376,7 @@ export class SemanticHighlighter {
         const fill = fillOf(slice);
         const legend = legendsByFill.get(fill) || [];
         // Legend color is only an identity when unique; palette colors can repeat.
-        const parts = [slice]; if (labels.length === slices.length && labels[index]) parts.push(labels[index]!);
+        const parts = [slice]; if (labels.length === slices.length && labels[index]) parts.push(labels[index]);
         const unique = legend.length === 1 && slicesByFill.get(fill)?.length === 1;
         if (unique) parts.push(legend[0]!);
         this.add(parts, 'slice', undefined, unique ? textOf(legend[0]!) : undefined);
@@ -534,13 +535,16 @@ export class SemanticHighlighter {
     }
     for (const { el, item } of targets) {
       const parent = el.parentElement; if (!parent) continue;
-      const proxy = this.svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', el.localName);
+      const tag = el.localName;
+      if (tag !== 'path' && tag !== 'line' && tag !== 'polyline') continue;
+      const proxy = createSvgElement(this.svg.ownerDocument, tag);
       const geometry = el.localName === 'path' ? ['d'] : el.localName === 'line' ? ['x1', 'y1', 'x2', 'y2'] : ['points'];
       for (const name of [...geometry, 'transform']) { const value = el.getAttribute(name); if (value != null) proxy.setAttribute(name, value); }
       // No copied native ID, classes, markers, styles, event attributes, or links.
       // A sibling shares the original clipping and coordinate system.
       proxy.setAttribute('data-kmv-hit-target', ''); proxy.setAttribute('aria-hidden', 'true');
-      const style = (proxy as SVGElement).style;
+      // Inline priority isolates hit geometry from native SVG ID-scoped styles.
+      const style = proxy.style;
       for (const [name, value] of Object.entries({ fill: 'none', stroke: 'transparent', 'stroke-width': `var(${hitStrokeProperty})`,
         'stroke-opacity': '0', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': 'none',
         'pointer-events': 'stroke', 'vector-effect': 'non-scaling-stroke', filter: 'none', 'marker-start': 'none', 'marker-mid': 'none', 'marker-end': 'none' })) style.setProperty(name, value, 'important');
@@ -643,7 +647,7 @@ export class SemanticHighlighter {
     this.svg.addEventListener(type, callback); this.listeners.push([type, callback]);
   }
   private mark(el: Element, name: string, value: string): void {
-    let saved = this.attributes.get(el); if (!saved) this.attributes.set(el, saved = new Map());
+    let saved = this.attributes.get(el); if (!saved) this.attributes.set(el, saved = new Map<string, string | null>());
     if (!saved.has(name)) saved.set(name, el.getAttribute(name));
     el.setAttribute(name, value);
   }

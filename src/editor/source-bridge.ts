@@ -6,7 +6,8 @@ import { locateSource, replaceSource, type DiagramSource, type SourceSnapshot } 
 async function validate(source: string): Promise<void> {
   const mermaid: unknown = await loadMermaid();
   if (!mermaid || typeof mermaid !== 'object' || !('parse' in mermaid) || typeof mermaid.parse !== 'function') throw new Error('The native Mermaid parser is unavailable. Edit this block in Obsidian’s source view.');
-  const result: unknown = await mermaid.parse(source);
+  const parser = mermaid as { parse(source: string): unknown };
+  const result: unknown = await parser.parse(source);
   if (result === false) throw new Error('Mermaid syntax is invalid. Correct the source before saving.');
 }
 

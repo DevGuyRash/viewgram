@@ -175,7 +175,7 @@ function flowNode(source: string, tokens: SourceToken[], at: number): ParsedNode
       end = string.end;
     } else {
       while (end < source.length && !source.startsWith(close, end) && source[end] !== '\n' && source[end] !== '\r') end++;
-      if (!source.startsWith(close, end) || /[\[\](){}"]/.test(source.slice(start, end))) continue;
+      if (!source.startsWith(close, end) || /[[\](){}"]/.test(source.slice(start, end))) continue;
     }
     node.label = labelRange(source, start, end, true);
     return finishNode(source, tokens, node, tokenAt(tokens, end + close.length));
@@ -333,12 +333,12 @@ function indexState(source: string, statements: SourceStatement[], index: Source
       continue;
     }
     if (first.text === 'state' && tokens[1]?.kind === 'string' && tokens[2]?.text === 'as' && word(tokens[3])) {
-      const id = tokens[3]!, label = tokens[1]!;
+      const id = tokens[3], label = tokens[1];
       index.nodes.push({ id: id.text, start: id.start, end: id.end, label: labelRange(source, label.start, label.end, true) });
     } else if (first.text === 'state' && word(tokens[1])) {
-      const id = tokens[1]!; index.nodes.push({ id: id.text, start: id.start, end: id.end });
+      const id = tokens[1]; index.nodes.push({ id: id.text, start: id.start, end: id.end });
     } else if (word(first) && tokens[1]?.text === ':') {
-      index.nodes.push({ id: first.text, start: first.start, end: first.end, label: textAfter(source, statement, tokens[1]!) });
+      index.nodes.push({ id: first.text, start: first.start, end: first.end, label: textAfter(source, statement, tokens[1]) });
     } else {
       const from = stateEndpoint(tokens, 0);
       const operator = from && tokens[from.next];
@@ -395,7 +395,7 @@ function indexEr(source: string, statements: SourceStatement[], index: SourceInd
     if (colon < 2) continue;
     const to = tokens[colon - 1]; if (!word(to)) { index.complete = false; continue; }
     const operator = source.slice(tokens[parsed.next]!.start, to.start).trim();
-    if (!/^[|o}{.\-]+$/.test(operator) || !/--|\.\./.test(operator)) { index.complete = false; continue; }
+    if (!/^[|o}{.-]+$/.test(operator) || !/--|\.\./.test(operator)) { index.complete = false; continue; }
     index.nodes.push({ id: to.text, start: to.start, end: to.end });
     index.relationships.push({ from: parsed.node.id, to: to.text, operator, label: textAfter(source, statement, tokens[colon]!, true), line: statement.line });
   }
@@ -432,10 +432,10 @@ function indexRequirements(source: string, statements: SourceStatement[], index:
     const tokens = statement.tokens, first = tokens[0]!;
     if (inBody) { if (tokens.some(token => token.text === '}')) inBody = false; continue; }
     if (kinds.has(first.text) && word(tokens[1])) {
-      const id = tokens[1]!; index.nodes.push({ id: id.text, start: id.start, end: id.end });
+      const id = tokens[1]; index.nodes.push({ id: id.text, start: id.start, end: id.end });
       inBody = tokens.some(token => token.text === '{') && !tokens.some(token => token.text === '}');
     } else if (word(first) && tokens[1]?.text === '-' && word(tokens[2]) && tokens[3]?.kind === 'arrow' && word(tokens[4])) {
-      index.relationships.push({ from: first.text, to: tokens[4]!.text, operator: source.slice(tokens[1]!.start, tokens[4]!.start).trim(), line: statement.line });
+      index.relationships.push({ from: first.text, to: tokens[4].text, operator: source.slice(tokens[1].start, tokens[4].start).trim(), line: statement.line });
     }
   }
 }

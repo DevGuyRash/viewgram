@@ -35,7 +35,7 @@ export class SequenceGeometry<T> {
     let coordinates: number[] | undefined;
     if (element.localName === 'line') {
       const values = ['x1', 'y1', 'x2', 'y2'].map(name => number(element, name));
-      if (values.every(value => value !== undefined)) coordinates = values as number[];
+      if (values.every(value => value !== undefined)) coordinates = values;
     } else if (element.localName === 'path') {
       const d = element.getAttribute('d') || '';
       const values = (d.match(/[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi) || []).map(Number);

@@ -14,10 +14,10 @@ export const mermaidLanguage = StreamLanguage.define<{ quote: string | null }>({
     if (stream.eatSpace()) return null;
     if (stream.match('%%')) { stream.skipToEnd(); return 'comment'; }
     const next = stream.peek();
-    if (next === '"') { state.quote = stream.next() as string; quoted(stream, state); return 'string'; }
+    if (next === '"') { stream.next(); state.quote = next; quoted(stream, state); return 'string'; }
     if (stream.match(/^#(?:\d+|x[\da-f]+);/i)) return 'escape';
     if (stream.match(/^(?:<?[-=.~]{2,}[>ox]?|[-=]{1,2}>[>]?|\|[|o}{]+[-.]{2}[|o}{]+|:::)/)) return 'operator';
-    if (stream.match(/^[\[\](){}|:,&@]/)) return 'punctuation';
+    if (stream.match(/^[[\](){}|:,&@]/)) return 'punctuation';
     if (stream.match(/^-?\d+(?:\.\d+)?(?:%|px)?\b/)) return 'number';
     if (stream.match(/^[\w\u0080-\uffff][\w\u0080-\uffff.-]*/)) return keywords.has(stream.current()) ? 'keyword' : 'variableName';
     stream.next(); return null;

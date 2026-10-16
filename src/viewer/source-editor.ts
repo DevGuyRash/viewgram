@@ -2,6 +2,7 @@ import { Lifetime } from './lifetime';
 import { SourceCodeEditor } from './source-code-editor';
 import { applyLabelEdits, sourceSelection, type DiagramSource, type LabelEdit, type SemanticTarget } from './source';
 import { sourceElement } from './source-mapping';
+import { createHtmlElement, setCssProps } from './dom';
 
 /** Source drafts survive native render replacement; Obsidian owns validation and rendering. */
 export class SourceEditor {
@@ -17,28 +18,28 @@ export class SourceEditor {
       const snapshot = await this.source.read();
       if (this.disposed || this.detached) return;
       const previous = this.doc.activeElement as HTMLElement | null;
-      const dialog = this.doc.createElement('dialog'); dialog.className = 'kmv-source-editor';
+      const dialog = createHtmlElement(this.doc, 'dialog'); dialog.className = 'kmv-source-editor';
       dialog.setAttribute('aria-label', 'Edit Mermaid source');
-      const header = this.doc.createElement('div'); header.className = 'kmv-source-header';
-      const body = this.doc.createElement('div'); body.className = 'kmv-source-body';
-      const title = this.doc.createElement('h2');
-      const help = this.doc.createElement('p'); header.append(title, help);
-      const status = this.doc.createElement('p'); status.className = 'kmv-source-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+      const header = createHtmlElement(this.doc, 'div'); header.className = 'kmv-source-header';
+      const body = createHtmlElement(this.doc, 'div'); body.className = 'kmv-source-body';
+      const title = createHtmlElement(this.doc, 'h2');
+      const help = createHtmlElement(this.doc, 'p'); header.append(title, help);
+      const status = createHtmlElement(this.doc, 'p'); status.className = 'kmv-source-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
       const setStatus = (state: string, message: string): void => { status.dataset.state = state; status.textContent = message; };
-      const actions = this.doc.createElement('div'); actions.className = 'kmv-source-actions';
-      const wholeChart = this.doc.createElement('button'); wholeChart.type = 'button'; wholeChart.textContent = 'Edit whole chart';
-      const cancel = this.doc.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel';
-      const save = this.doc.createElement('button'); save.type = 'button'; save.textContent = 'Save source';
+      const actions = createHtmlElement(this.doc, 'div'); actions.className = 'kmv-source-actions';
+      const wholeChart = createHtmlElement(this.doc, 'button'); wholeChart.type = 'button'; wholeChart.textContent = 'Edit whole chart';
+      const cancel = createHtmlElement(this.doc, 'button'); cancel.type = 'button'; cancel.textContent = 'Cancel';
+      const save = createHtmlElement(this.doc, 'button'); save.type = 'button'; save.textContent = 'Save source';
       actions.append(cancel, save);
       const life = new Lifetime();
       let code: SourceCodeEditor | undefined;
       let wrapToggle: HTMLInputElement | undefined;
       let saving = false, closed = false;
       const fields: Array<{ edit: LabelEdit; input: HTMLTextAreaElement }> = [];
-      const nodeBody = this.doc.createElement('div'); nodeBody.className = 'kmv-node-fields';
+      const nodeBody = createHtmlElement(this.doc, 'div'); nodeBody.className = 'kmv-node-fields';
       const field = (parent: HTMLElement, captionText: string, value: string, edit?: LabelEdit, relationship = false): HTMLTextAreaElement => {
-        const caption = this.doc.createElement('label'); caption.textContent = captionText;
-        const input = this.doc.createElement('textarea'); input.className = relationship ? 'kmv-relationship-label' : 'kmv-element-label kmv-node-text';
+        const caption = createHtmlElement(this.doc, 'label'); caption.textContent = captionText;
+        const input = createHtmlElement(this.doc, 'textarea'); input.className = relationship ? 'kmv-relationship-label' : 'kmv-element-label kmv-node-text';
         input.value = value; input.setAttribute('aria-label', captionText); input.spellcheck = false;
         if (!edit) { input.readOnly = true; input.classList.add('kmv-source-readonly-label'); }
         else {
@@ -57,20 +58,22 @@ export class SourceEditor {
       const size = (): void => {
         if (!win) return;
         const width = viewport?.width ?? win.innerWidth, height = viewport?.height ?? win.innerHeight;
-        dialog.style.setProperty('--kmv-editor-viewport-width', `${width}px`);
-        dialog.style.setProperty('--kmv-editor-viewport-height', `${height}px`);
-        dialog.style.setProperty('--kmv-editor-center-x', `${(viewport?.offsetLeft ?? 0) + width / 2}px`);
-        dialog.style.setProperty('--kmv-editor-center-y', `${(viewport?.offsetTop ?? 0) + height / 2}px`);
+        setCssProps(dialog, {
+          '--kmv-editor-viewport-width': `${width}px`,
+          '--kmv-editor-viewport-height': `${height}px`,
+          '--kmv-editor-center-x': `${(viewport?.offsetLeft ?? 0) + width / 2}px`,
+          '--kmv-editor-center-y': `${(viewport?.offsetTop ?? 0) + height / 2}px`,
+        });
         code?.resize();
       };
       const openWholeChart = (source: string, focus: boolean): void => {
-        const codeField = this.doc.createElement('div'); codeField.className = 'kmv-source-field';
-        const toolbar = this.doc.createElement('div'); toolbar.className = 'kmv-source-toolbar';
-        const caption = this.doc.createElement('span'); caption.textContent = 'Mermaid source';
-        const wrapLabel = this.doc.createElement('label'); wrapLabel.className = 'kmv-source-wrap';
-        const toggle = this.doc.createElement('input'); toggle.type = 'checkbox'; toggle.checked = true; toggle.setAttribute('aria-label', 'Wrap lines');
+        const codeField = createHtmlElement(this.doc, 'div'); codeField.className = 'kmv-source-field';
+        const toolbar = createHtmlElement(this.doc, 'div'); toolbar.className = 'kmv-source-toolbar';
+        const caption = createHtmlElement(this.doc, 'span'); caption.textContent = 'Mermaid source';
+        const wrapLabel = createHtmlElement(this.doc, 'label'); wrapLabel.className = 'kmv-source-wrap';
+        const toggle = createHtmlElement(this.doc, 'input'); toggle.type = 'checkbox'; toggle.checked = true; toggle.setAttribute('aria-label', 'Wrap lines');
         wrapLabel.append(toggle, this.doc.createTextNode('Wrap lines')); toolbar.append(caption, wrapLabel);
-        const parent = this.doc.createElement('div'); parent.className = 'kmv-source-code'; codeField.append(toolbar, parent);
+        const parent = createHtmlElement(this.doc, 'div'); parent.className = 'kmv-source-code'; codeField.append(toolbar, parent);
         // CodeMirror is created only for an explicit whole-chart editor.
         const next = new SourceCodeEditor(parent, source, () => setStatus('draft', 'Changes are kept in this draft until Save.'));
         code = next; wrapToggle = toggle;
@@ -88,19 +91,19 @@ export class SourceEditor {
         dialog.dataset.mode = 'node'; title.textContent = `Edit ${target.kind}`;
         help.textContent = element.reason ?? 'Edit this node’s text and attached relationship labels. Save preserves IDs, shapes and Mermaid syntax.';
         nodeInput = field(nodeBody, 'Element label', element.value, element.label);
-        const relationships = this.doc.createElement('section'); relationships.className = 'kmv-source-relationships';
+        const relationships = createHtmlElement(this.doc, 'section'); relationships.className = 'kmv-source-relationships';
         relationships.setAttribute('aria-label', 'Attached relationships');
-        const heading = this.doc.createElement('h3'); heading.textContent = 'Attached relationships'; relationships.append(heading);
+        const heading = createHtmlElement(this.doc, 'h3'); heading.textContent = 'Attached relationships'; relationships.append(heading);
         if (!element.relationships.length) {
-          const empty = this.doc.createElement('p'); empty.textContent = element.reason ? 'No source relationships could be resolved for this element.' : 'This node has no attached relationships.'; relationships.append(empty);
+          const empty = createHtmlElement(this.doc, 'p'); empty.textContent = element.reason ? 'No source relationships could be resolved for this element.' : 'This node has no attached relationships.'; relationships.append(empty);
         }
         for (const [number, edge] of element.relationships.entries()) {
-          const item = this.doc.createElement('div'); item.className = 'kmv-source-relationship';
-          const summary = this.doc.createElement('p'); summary.className = 'kmv-relationship-summary'; summary.textContent = `${edge.from} ${edge.operator} ${edge.to}`;
-          const location = this.doc.createElement('small'); location.textContent = `Source line ${edge.line + 1}`; item.append(summary, location);
+          const item = createHtmlElement(this.doc, 'div'); item.className = 'kmv-source-relationship';
+          const summary = createHtmlElement(this.doc, 'p'); summary.className = 'kmv-relationship-summary'; summary.textContent = `${edge.from} ${edge.operator} ${edge.to}`;
+          const location = createHtmlElement(this.doc, 'small'); location.textContent = `Source line ${edge.line + 1}`; item.append(summary, location);
           if (edge.label) field(item, `Relationship ${number + 1} label`, edge.label.value, edge.label, true);
           else if (edge.text !== undefined) field(item, `Relationship ${number + 1} text`, edge.text, undefined, true);
-          else { const unlabeled = this.doc.createElement('p'); unlabeled.textContent = 'No separate editable relationship label.'; item.append(unlabeled); }
+          else { const unlabeled = createHtmlElement(this.doc, 'p'); unlabeled.textContent = 'No separate editable relationship label.'; item.append(unlabeled); }
           relationships.append(item);
         }
         nodeBody.append(relationships); body.append(nodeBody); actions.prepend(wholeChart);
@@ -177,9 +180,8 @@ export class SourceEditor {
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error && typeof error === 'object') {
-    for (const key of ['message', 'str']) {
-      if (key in error && typeof (error as Record<string, unknown>)[key] === 'string') return (error as Record<string, string>)[key]!;
-    }
+    if ('message' in error && typeof error.message === 'string') return error.message;
+    if ('str' in error && typeof error.str === 'string') return error.str;
   }
   return typeof error === 'string' ? error : 'An unexpected error occurred.';
 }

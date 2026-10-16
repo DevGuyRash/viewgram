@@ -18,5 +18,10 @@ interface Window {
     getSettings(): import('../src/viewer/settings').ViewerSettings;
     disposeAll(): void;
     ready: boolean;
+    taxonomy?: typeof import('./taxonomy-data').taxonomy;
+    runTypeCase?(id: string): Promise<import('./demo').TypeResult>;
+    typeResults?: import('./demo').TypeResult[];
+    showOriginal?(id: string): Promise<import('./demo').TypeResult>;
+    attachTypeViewer?(result: import('./demo').TypeResult): Promise<import('./demo').TypeResult>;
   };
 }

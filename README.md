@@ -18,7 +18,7 @@ Desktop behavior has been qualified as described below. Real mobile keyboards/to
 
 ## Manual installation
 
-Download `main.js`, `manifest.json` and `styles.css` from the [Viewgram releases](https://github.com/DevGuyRash/viewgram/releases). These are the only runtime files. The Community directory submission is pending; manual installation does not require a directory listing.
+Download `main.js`, `manifest.json` and `styles.css` from the [Viewgram releases](https://github.com/DevGuyRash/viewgram/releases). These are the only runtime files. Manual installation is available independently of the Community directory listing and its review status.
 
 Close Obsidian before placing those three files in `<vault>/.obsidian/plugins/viewgram/`, preserve any `data.json`, then enable Viewgram in Community plugins. Use the actual Obsidian configuration directory if it has a custom name.
 
@@ -57,6 +57,14 @@ npm run build
 Only `dist/main.js`, `dist/manifest.json` and `dist/styles.css` are runtime artifacts. Obsidian and CodeMirror are supplied by the host, not bundled. The demo's Mermaid dependency is development-only.
 
 Source checkout belongs outside a vault, for example `~/repos/viewgram`. Installation uses `<vault>/.obsidian/plugins/viewgram/`. Settings are loaded and saved only in this namespace; the explicit helper above is the only supported migration from the confirmed `devguyrash-mermaid-viewer` installation. No settings migration runs automatically, and a build does not install or enable anything. Leave third-party `mermaid-viewer` folders, data and enabled state untouched. See [placement](docs/PLACEMENT.md).
+
+## Releases and updates
+
+Maintainers follow [RELEASING.md](RELEASING.md) to synchronize versions, build,
+publish the matching GitHub Release and verify its downloaded runtime files.
+Source pushes do not publish updates automatically. Obsidian users choose
+**Community plugins → Check for updates → Update** or **Update all**; later
+releases do not require another initial directory submission.
 
 ## Current status
 

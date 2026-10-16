@@ -1,4 +1,5 @@
 import { nativeSize, type Size } from './math';
+import { createHtmlElement } from './dom';
 
 export type ExportFormat = 'svg' | 'png' | 'jpg' | 'webp';
 export interface DiagramFile { blob: Blob; filename: string; notice?: string }
@@ -45,7 +46,7 @@ const OMIT = new Set(['style', 'script', 'animate', 'animateMotion', 'animateTra
 const UNSUPPORTED = new Set(['iframe', 'object', 'embed', 'video', 'audio', 'canvas', 'link', 'base', 'meta', 'input', 'textarea', 'select', 'picture', 'source']);
 const foreignObjectSupport = new WeakMap<Document, Promise<boolean>>();
 
-function windowOf(doc: Document): Window & typeof globalThis {
+function windowOf(doc: Document): typeof window {
   if (!doc.defaultView) throw new DiagramExportError('This diagram no longer has an active document.');
   return doc.defaultView;
 }
@@ -54,8 +55,9 @@ function resource(value: string, doc: Document, allowImage = false): string {
   if (trimmed.startsWith('#')) return trimmed;
   if (allowImage && /^data:image\/(?:png|jpeg|gif|webp);base64,[a-z\d+/=\s]+$/i.test(trimmed)) return trimmed;
   try {
-    const url = new URL(trimmed, doc.baseURI);
-    if (url.hash && url.href.split('#')[0] === new URL(doc.URL).href.split('#')[0]) return url.hash;
+    const Url = windowOf(doc).URL;
+    const url = new Url(trimmed, doc.baseURI);
+    if (url.hash && url.href.split('#')[0] === new Url(doc.URL).href.split('#')[0]) return url.hash;
   } catch { /* An invalid URL is not a portable local resource. */ }
   throw new DiagramExportError('This diagram uses an external image or resource. Export cannot fetch it; use an embedded image or copy the source.');
 }
@@ -128,10 +130,12 @@ function snapshot(svg: SVGSVGElement): { clone: SVGSVGElement; size: Size; backg
 function setDimensions(svg: SVGSVGElement, size: Size): void {
   svg.setAttribute('width', String(size.width)); svg.setAttribute('height', String(size.height));
   svg.style.setProperty('width', `${size.width}px`, 'important'); svg.style.setProperty('height', `${size.height}px`, 'important');
+  // The detached file must override native responsive sizing without depending on viewer CSS.
+  // eslint-disable-next-line obsidianmd/no-static-styles-assignment -- Portable SVG export requires inline dimensions with priority.
   svg.style.setProperty('max-width', 'none', 'important'); svg.style.setProperty('max-height', 'none', 'important');
 }
 function serialize(svg: SVGSVGElement): string { return new (windowOf(svg.ownerDocument).XMLSerializer)().serializeToString(svg); }
-function svgFile(svg: SVGSVGElement): DiagramFile { return { blob: new Blob([serialize(svg)], { type: 'image/svg+xml;charset=utf-8' }), filename: 'diagram.svg' }; }
+function svgFile(svg: SVGSVGElement): DiagramFile { return { blob: new (windowOf(svg.ownerDocument).Blob)([serialize(svg)], { type: 'image/svg+xml;charset=utf-8' }), filename: 'diagram.svg' }; }
 function boundedSize(size: Size): Size {
   const scale = Math.min(1, MAX_SIDE / size.width, MAX_SIDE / size.height, Math.sqrt(MAX_PIXELS / size.width / size.height));
   return { width: Math.max(1, Math.floor(size.width * scale)), height: Math.max(1, Math.floor(size.height * scale)) };
@@ -140,7 +144,7 @@ function loadImage(doc: Document, source: string): Promise<HTMLImageElement> {
   const win = windowOf(doc);
   const data = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
   return new Promise((resolve, reject) => {
-    const image = doc.createElement('img');
+    const image = createHtmlElement(doc, 'img');
     const finish = (error?: Error) => {
       win.clearTimeout(timer); image.onload = null; image.onerror = null;
       if (error) { image.removeAttribute('src'); reject(error); } else resolve(image);
@@ -155,7 +159,7 @@ async function supportsHtmlLabels(doc: Document): Promise<boolean> {
   let pending = foreignObjectSupport.get(doc);
   if (!pending) {
     pending = (async () => {
-      const canvas = doc.createElement('canvas'); canvas.width = canvas.height = 2;
+      const canvas = createHtmlElement(doc, 'canvas'); canvas.width = canvas.height = 2;
       let image: HTMLImageElement | undefined;
       try {
         const context = canvas.getContext('2d'); if (!context) return false;
@@ -175,7 +179,7 @@ async function rasterFile(clone: SVGSVGElement, size: Size, background: string[]
   if (clone.querySelector('foreignObject') && !await supportsHtmlLabels(doc)) throw new Error('This browser cannot safely rasterize HTML diagram labels. Save SVG instead.');
   const output = boundedSize(size);
   setDimensions(clone, output);
-  const canvas = doc.createElement('canvas'); canvas.width = output.width; canvas.height = output.height;
+  const canvas = createHtmlElement(doc, 'canvas'); canvas.width = output.width; canvas.height = output.height;
   let image: HTMLImageElement | undefined;
   try {
     const context = canvas.getContext('2d');
@@ -195,7 +199,7 @@ async function rasterFile(clone: SVGSVGElement, size: Size, background: string[]
           win.clearTimeout(timer);
           if (value) resolve(value); else reject(new Error('The browser could not encode this image. Save SVG instead.'));
         }, MIME[format], .95);
-      } catch (error) { win.clearTimeout(timer); reject(error); }
+      } catch (error) { win.clearTimeout(timer); reject(error instanceof Error ? error : new Error(String(error))); }
     });
     if (blob.type !== MIME[format]) throw new Error(`This browser does not support ${format.toUpperCase()} encoding. Save PNG or SVG instead.`);
     const resized = output.width < Math.floor(size.width) || output.height < Math.floor(size.height);
@@ -219,8 +223,8 @@ export async function exportDiagram(svg: SVGSVGElement, format: ExportFormat): P
 export function downloadFile(doc: Document, blob: Blob, filename: string): void {
   const win = windowOf(doc);
   if (typeof win.URL.createObjectURL !== 'function') throw new DiagramExportError('This browser cannot download files.');
-  const url = win.URL.createObjectURL(blob), anchor = doc.createElement('a');
-  anchor.href = url; anchor.download = filename; anchor.style.display = 'none';
+  const url = win.URL.createObjectURL(blob), anchor = createHtmlElement(doc, 'a');
+  anchor.href = url; anchor.download = filename; anchor.hidden = true;
   try { doc.body.append(anchor); anchor.click(); }
   finally {
     anchor.remove();
@@ -230,7 +234,8 @@ export function downloadFile(doc: Document, blob: Blob, filename: string): void 
 }
 
 export async function copyText(doc: Document, text: string): Promise<CopyResult> {
-  const fallback = { blob: new Blob([text], { type: 'text/plain;charset=utf-8' }), filename: 'diagram.mmd' };
+  const BlobConstructor = doc.defaultView?.Blob ?? window.Blob;
+  const fallback = { blob: new BlobConstructor([text], { type: 'text/plain;charset=utf-8' }), filename: 'diagram.mmd' };
   try {
     const clipboard = windowOf(doc).navigator.clipboard;
     if (!clipboard?.writeText) return { copied: false, notice: 'Source was not copied: clipboard access is unavailable. Save the source file instead.', fallback };

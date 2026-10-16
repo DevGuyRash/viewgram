@@ -2,6 +2,7 @@ import { center, constrain, fitted, nativeSize, parsePercent, resized, validSize
 import { Lifetime } from './lifetime';
 import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from './settings';
 import { interactiveAncestor } from './semantics';
+import { createHtmlElement as element, createSvgElement, setCssProps } from './dom';
 
 export type ViewerActionIcon = 'edit' | 'copy' | 'image' | 'download';
 export interface ViewerActionResult { message: string; feedback?: 'success' | 'warning'; fallback?: { label: string; run(): void } }
@@ -20,11 +21,8 @@ export interface ViewerOptions {
 }
 const ZOOM_PRESETS = [10, 25, 50, 75, 100, 125, 150, 200, 300, 400];
 let helpId = 0;
-function element(doc: Document, tag: string, className: string, text?: string): HTMLElement {
-  const el = doc.createElement(tag); el.className = className; if (text) el.textContent = text; return el;
-}
 function controlIcon(doc: Document, name: ViewerActionIcon | 'check'): SVGSVGElement {
-  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svg = createSvgElement(doc, 'svg');
   svg.classList.add('kmv-control-icon'); svg.dataset.icon = name;
   for (const [key, value] of Object.entries({ viewBox: '0 0 24 24', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false' })) svg.setAttribute(key, value);
   const paths: Record<ViewerActionIcon | 'check', string> = {
@@ -34,7 +32,7 @@ function controlIcon(doc: Document, name: ViewerActionIcon | 'check'): SVGSVGEle
     download: 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
     check: 'M5 12l4 4L19 6',
   };
-  const path = doc.createElementNS(svg.namespaceURI, 'path'); path.setAttribute('d', paths[name]); svg.append(path);
+  const path = createSvgElement(doc, 'path'); path.setAttribute('d', paths[name]); svg.append(path);
   return svg;
 }
 export class ViewportController {
@@ -73,7 +71,9 @@ export class ViewportController {
     this.settings = readSettings(options.settings ?? DEFAULT_SETTINGS);
     this.resizable = options.resizable ?? options.mode === 'width';
     const doc = svg.ownerDocument;
-    this.win = doc.defaultView!;
+    const win = doc.defaultView;
+    if (!win) throw new Error('Diagram viewer needs a document with a window.');
+    this.win = win;
     this.root = element(doc, 'section', 'kmv-viewer');
     this.root.setAttribute('aria-label', options.label || 'Mermaid diagram viewer');
     this.root.setAttribute('contenteditable', 'false');
@@ -87,11 +87,10 @@ export class ViewportController {
     this.viewport.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight ArrowUp ArrowDown + - Home F W 0 R');
     // Keep the native direct-child presentation contract (notably Obsidian's dark SVG filter).
     this.surface = element(doc, 'div', options.nativeMermaidParent ? 'kmv-surface mermaid' : 'kmv-surface');
-    this.svg.style.setProperty('width', `${this.native.width}px`, 'important');
-    this.svg.style.setProperty('height', `${this.native.height}px`, 'important');
-    this.svg.style.setProperty('max-width', 'none', 'important');
-    this.svg.style.setProperty('max-height', 'none', 'important');
-    this.svg.style.setProperty('display', 'block');
+    // The viewer owns sizing while wrapped; DiagramViewer restores the original
+    // style attribute on disposal, including authored inline !important values.
+    for (const property of ['width', 'height', 'max-width', 'max-height', 'display']) this.svg.style.removeProperty(property);
+    setCssProps(this.surface, { '--kmv-native-width': `${this.native.width}px`, '--kmv-native-height': `${this.native.height}px` });
     this.surface.append(svg);
     this.viewport.append(this.surface);
     const footer = element(doc, 'div', 'kmv-footer');
@@ -129,8 +128,9 @@ export class ViewportController {
             if (this.lifetime.disposed || epoch !== this.actionEpoch) return;
             actionStatus.textContent = result?.message ?? '';
             if (result?.feedback === 'success' && !result.fallback) this.showActionSuccess(button, action.icon, summary, result.message);
-            if (result?.fallback) actionStatus.append(this.button(result.fallback.label, result.fallback.label, () => {
-              try { result.fallback!.run(); }
+            const fallback = result?.fallback;
+            if (fallback) actionStatus.append(this.button(fallback.label, fallback.label, () => {
+              try { fallback.run(); }
               catch (error) { if (actionStatus.firstChild) actionStatus.firstChild.textContent = error instanceof Error ? error.message : String(error); }
             }));
           }, error => { if (!this.lifetime.disposed && epoch === this.actionEpoch) actionStatus.textContent = error instanceof Error ? error.message : String(error); })
@@ -152,7 +152,7 @@ export class ViewportController {
     const row = element(doc, 'div', 'kmv-zoom-row');
     this.zoomOut = this.button('−', 'Zoom out', e => this.nudge(-this.zoomStep(e.shiftKey)));
     this.zoomIn = this.button('+', 'Zoom in', e => this.nudge(this.zoomStep(e.shiftKey)));
-    this.zoomInput = doc.createElement('input');
+    this.zoomInput = element(doc, 'input');
     this.zoomInput.className = 'kmv-zoom-input';
     this.zoomInput.type = 'text'; this.zoomInput.inputMode = 'decimal';
     this.zoomInput.setAttribute('aria-label', 'Zoom percentage');
@@ -217,7 +217,7 @@ export class ViewportController {
     this.lifetime.add(() => { ++this.actionEpoch; this.clearActionFeedback(); if (this.frame) this.win.cancelAnimationFrame(this.frame); this.finishDrag(); });
   }
   private button(text: string, label: string, fn: (e: MouseEvent) => void): HTMLButtonElement {
-    const button = this.svg.ownerDocument.createElement('button');
+    const button = element(this.svg.ownerDocument, 'button');
     button.type = 'button'; button.className = 'kmv-button'; button.textContent = text;
     button.setAttribute('aria-label', label); button.title = label;
     this.lifetime.listen(button, 'click', ((e: MouseEvent) => { e.stopPropagation(); fn(e); }) as EventListener);
@@ -257,7 +257,7 @@ export class ViewportController {
     const height = visual?.height || this.win.innerHeight;
     const footer = this.root.querySelector<HTMLElement>('.kmv-footer');
     const above = footer ? footer.getBoundingClientRect().top - (visual?.offsetTop || 0) - 8 : height / 2;
-    this.root.style.setProperty('--kmv-menu-max-height', `${Math.max(32, Math.floor(Math.min(height / 2, above)))}px`);
+    setCssProps(this.root, { '--kmv-menu-max-height': `${Math.max(32, Math.floor(Math.min(height / 2, above)))}px` });
   }
   private events(): void {
     const on = (type: string, callback: EventListener, target: EventTarget = this.viewport, options?: AddEventListenerOptions) => this.lifetime.listen(target, type, callback, options);
@@ -265,15 +265,16 @@ export class ViewportController {
       if (e.key === 'Escape' && this.drag) { e.preventDefault(); e.stopPropagation(); this.finishDrag(); return; }
       if (e.target !== this.viewport || e.ctrlKey || e.metaKey || e.altKey) return;
       const actions: Record<string, () => void> = { ArrowLeft: () => this.pan(1, 0), ArrowRight: () => this.pan(-1, 0), ArrowUp: () => this.pan(0, 1), ArrowDown: () => this.pan(0, -1), '+': () => this.nudge(this.zoomStep(e.shiftKey)), '=': () => this.nudge(this.zoomStep(e.shiftKey)), '-': () => this.nudge(-this.zoomStep(e.shiftKey)), Home: () => this.recenter(), f: () => this.fit(), F: () => this.fit(), w: () => this.fit('width'), W: () => this.fit('width'), r: () => this.reset(), R: () => this.reset(), '0': () => this.setZoom(1) };
-      if (actions[e.key]) { e.preventDefault(); e.stopPropagation(); actions[e.key]!(); }
+      const action = actions[e.key];
+      if (action) { e.preventDefault(); e.stopPropagation(); action(); }
     }) as EventListener);
     on('keydown', ((e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); this.constrainMenus(); this.zoomMenu.hidden = false; this.zoomInput.setAttribute('aria-expanded', 'true'); (this.zoomMenu.querySelector('button') as HTMLButtonElement | null)?.focus(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); this.constrainMenus(); this.zoomMenu.hidden = false; this.zoomInput.setAttribute('aria-expanded', 'true'); this.zoomMenu.querySelector('button')?.focus(); return; }
       if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); this.commitInput(); this.viewport.focus({ preventScroll: true }); }
       else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.closePresets(); this.zoomInput.value = this.percent(); this.viewport.focus({ preventScroll: true }); }
     }) as EventListener, this.zoomInput);
-    on('change', (() => this.commitInput()) as EventListener, this.zoomInput);
-    on('focus', (() => this.zoomInput.select()) as EventListener, this.zoomInput);
+    on('change', () => this.commitInput(), this.zoomInput);
+    on('focus', () => this.zoomInput.select(), this.zoomInput);
     on('pointerdown', ((e: PointerEvent) => {
       this.suppressClick = false;
       const control = interactiveAncestor(e.target, this.viewport);
@@ -294,9 +295,9 @@ export class ViewportController {
       this.state = constrain(this.native, this.size, { ...this.state, mode: 'manual', x: drag.startX + dx, y: drag.startY + dy });
       this.root.classList.add('kmv-dragging'); this.schedule();
     }) as EventListener, this.win, { capture: true });
-    for (const type of ['pointerup', 'pointercancel']) on(type, (() => this.finishDrag()) as EventListener, this.win, { capture: true });
-    on('lostpointercapture', (() => this.finishDrag()) as EventListener);
-    on('blur', (() => this.finishDrag()) as EventListener, this.win);
+    for (const type of ['pointerup', 'pointercancel']) on(type, () => this.finishDrag(), this.win, { capture: true });
+    on('lostpointercapture', () => this.finishDrag());
+    on('blur', () => this.finishDrag(), this.win);
     on('click', ((e: MouseEvent) => {
       if (this.suppressClick) { e.preventDefault(); e.stopImmediatePropagation(); this.suppressClick = false; }
     }) as EventListener, this.viewport, { capture: true });
@@ -353,13 +354,12 @@ export class ViewportController {
     }
     const heights = [this.win.innerHeight, this.win.visualViewport?.height ?? 0, ...[...parents].map(parent => parent.clientHeight)].filter(height => height > 0 && Number.isFinite(height));
     const available = heights.length ? Math.min(...heights) : 0;
-    const footer = this.root.querySelector('.kmv-footer') as HTMLElement | null;
+    const footer = this.root.querySelector<HTMLElement>('.kmv-footer');
     const maxOuter = Math.max(0, Math.floor(available * .88));
     const max = Math.max(0, maxOuter - (footer?.offsetHeight || 80) - 2);
     // Leave room to shrink in a small pane instead of setting its minimum to its maximum.
     const min = Math.min(150, Math.floor(max / 2));
-    this.root.style.setProperty('--kmv-viewport-min-height', `${min}px`);
-    this.root.style.setProperty('--kmv-viewer-max-height', `${maxOuter}px`);
+    setCssProps(this.root, { '--kmv-viewport-min-height': `${min}px`, '--kmv-viewer-max-height': `${maxOuter}px` });
     return { min, max };
   }
   private setHeight(requested: number, manual = false): void {
@@ -370,9 +370,7 @@ export class ViewportController {
     const total = next + (footer?.offsetHeight || 0) + 2;
     // Obsidian themes can assign section/div height and flex sizing. The owned outer
     // frame, not only its child, must grow so the footer follows every resize.
-    this.root.style.setProperty('height', `${total}px`, 'important');
-    this.root.style.setProperty('block-size', `${total}px`, 'important');
-    this.viewport.style.setProperty('height', `${next}px`, 'important');
+    setCssProps(this.root, { '--kmv-viewer-height': `${total}px`, '--kmv-viewport-height': `${next}px` });
     this.constrainMenus();
   }
   private autoHeight(width: number): void {
@@ -440,7 +438,7 @@ export class ViewportController {
   updateSettings(settings: ViewerSettings): void {
     const previous = this.settings; this.settings = readSettings(settings);
     this.root.dataset.background = this.settings.background;
-    this.root.style.setProperty('--kmv-background-spacing', `${this.settings.backgroundSpacing}px`);
+    setCssProps(this.root, { '--kmv-background-spacing': `${this.settings.backgroundSpacing}px` });
     const hint = this.root.querySelector<HTMLElement>('.kmv-hint'); if (hint) hint.hidden = !this.settings.showHints;
     if (this.initialized && previous.initialFit !== this.settings.initialFit && this.state.mode !== 'manual' && this.resizable) this.fit(this.settings.initialFit);
     this.autoHeight(this.viewport.clientWidth);
@@ -458,7 +456,7 @@ export class ViewportController {
   private paint(): void {
     if (!this.initialized || this.suspended || this.lifetime.disposed) return;
     const { scale, x, y } = this.state;
-    this.surface.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    setCssProps(this.surface, { '--kmv-surface-transform': `translate(${x}px, ${y}px) scale(${scale})` });
     this.options.onScale?.(scale);
     this.root.classList.toggle('kmv-can-pan', this.canPan());
     this.root.classList.toggle('kmv-touch-drag', this.state.mode === 'manual' && this.canPan());

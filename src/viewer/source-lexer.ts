@@ -65,7 +65,7 @@ export function sourceStatements(source: string, options: { sequenceComments?: b
     while (at < source.length) {
       const entity = entityAt(source, at);
       if (entity) { at += entity.length; continue; }
-      if (/[\s;\[\](){}:,&|@"]/.test(source[at]!) || source.startsWith('%%', at) || (options.sequenceComments && !metadataDepth && (source[at] === '%' || source[at] === '#')) || arrowAt(source, at, true)) break;
+      if (/[\s;[\](){}:,&|@"]/.test(source[at]!) || source.startsWith('%%', at) || (options.sequenceComments && !metadataDepth && (source[at] === '%' || source[at] === '#')) || arrowAt(source, at, true)) break;
       at++;
     }
     tokens.push({ kind: 'word', text: source.slice(tokenStart, at), start: tokenStart, end: at });

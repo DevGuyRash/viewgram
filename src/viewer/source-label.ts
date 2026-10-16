@@ -24,7 +24,7 @@ export function decodeLabel(text: string): string {
 
 /** Mermaid entities survive parsing without becoming syntax or injected HTML. */
 export function encodeLabel(text: string): string {
-  return text.replace(/[#%"&<>\[\]{}()|;:`\\\r\n]/g, char => char === '\r' ? '' : `#${char.codePointAt(0)};`);
+  return text.replace(/[#%"&<>[\]{}()|;:`\\\r\n]/g, char => char === '\r' ? '' : `#${char.codePointAt(0)};`);
 }
 
 export function applyLabel(source: string, edit: LabelEdit, value: string): string {
