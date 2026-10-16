@@ -14,11 +14,14 @@ recommendations and unverified optional capabilities/attestations explicit.
 GitHub PR checks and local lint are separate evidence; neither is an Obsidian
 preview result, and no Obsidian GitHub status name is assumed.
 
-Run `npm run lint:obsidian` as a separate official local preflight within the
-user's authorized scope. Keep warnings visible; fix each or record its reviewed
-necessity without suppressing review rules. Use the component reasons in
-`RELEASING.md`; local lint does not establish CSS coverage, reproducible builds,
-attestations, or an official preview pass.
+Run `npm run lint:obsidian` within the user's authorized scope. It combines the
+official source rules with the local `lint:review-css` tripwires. Native DOM
+creation in plugin source is an error; standalone adapters belong to the
+standalone entry point. Keep other warnings visible and review them without
+suppressing rules. Do not introduce stylesheet priority overrides, `:has()`, or
+the rejected decoration longhands. Use owned state classes and CSS variables.
+The CSS tripwires cover those patterns only; they do not establish complete CSS
+compatibility, reproducible builds, attestations, or an official preview pass.
 
 When preparing a plugin update, follow [RELEASING.md](RELEASING.md). Keep the
 plugin ID stable and synchronize the package, lockfile, manifest and

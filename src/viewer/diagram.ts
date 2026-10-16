@@ -8,6 +8,7 @@ import { Lifetime } from './lifetime';
 import { nativeSize } from './math';
 import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from './settings';
 import { createHtmlElement } from './dom';
+import { respectReducedMotion } from './reduced-motion';
 
 export class DiagramViewer {
   readonly inline: ViewportController;
@@ -35,6 +36,7 @@ export class DiagramViewer {
     parent.insertBefore(this.marker, svg);
     this.inline = new ViewportController(svg, { mode: this.settings.initialFit, resizable: true, settings: this.settings, onScale: scale => this.semantics.setViewportScale(scale), nativeMermaidParent: svg.parentElement?.classList.contains('mermaid') === true, open: () => this.open(), edit: this.editor ? () => this.editChart() : undefined, openLink, actions: this.actions() }, native);
     this.marker.after(this.inline.root);
+    this.lifetime.add(respectReducedMotion(svg));
     if (source && /sequence/.test(this.semantics.family)) {
       // Notes can straddle neighboring actors. One source snapshot grounds those
       // associations without keeping note text or polling the editor.

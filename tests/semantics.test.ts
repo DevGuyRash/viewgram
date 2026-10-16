@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import { SemanticHighlighter, type SemanticTarget } from '../src/viewer/semantics';
+import { setDomCreationPlatform } from '../src/viewer/dom';
+import { browserDomCreation } from '../demo/browser-dom';
+setDomCreationPlatform(browserDomCreation);
 function setup(content: string, family = 'flowchart-v2') {
   const window = new Window();
   window.document.body.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" id="native" aria-roledescription="${family}">${content}</svg>`;

@@ -19,7 +19,6 @@ const interactive = 'a, summary, button, input, textarea, select, [role="button"
 const drawable = 'rect, circle, ellipse, polygon, polyline, path, line, text, foreignObject, image, use';
 const transient = ['kmv-semantic-active', 'kmv-semantic-related', 'kmv-semantic-dim', 'kmv-semantic-incoming', 'kmv-semantic-outgoing', 'kmv-semantic-both', 'kmv-semantic-undirected'];
 type Emphasis = 'active' | 'context' | Relation | 'related';
-const nativeFilterProperty = '--kmv-semantic-native-filter';
 const hitStrokeProperty = '--kmv-semantic-hit-stroke-width';
 const textOf = (el: Element): string => (el.textContent || '').replace(/\s+/g, ' ').trim();
 const labelOf = (el: Element): string => {
@@ -66,7 +65,7 @@ export class SemanticHighlighter {
   private readonly emphasis = new Map<Item, Emphasis>();
   private readonly dimmed = new Set<Item>();
   private readonly hitTargets = new Map<Element, Element>();
-  private readonly nativeFilters = new Map<Element, { original: string | null; applied: string }>();
+  private readonly nativeFilters = new Map<Element, { original: string | null; applied: string; value: string; priority: string; appliedFilter: string }>();
   private sequenceGeometry?: SequenceGeometry<Item>;
   private readonly sourceEdges = new Map<Item, NonNullable<Item['edge']>>();
   private readonly sourceNotes: Array<[Item, Item]> = [];
@@ -568,16 +567,26 @@ export class SemanticHighlighter {
   private preserveFilter(el: Element, captured?: string): void {
     const native = captured ?? this.svg.ownerDocument.defaultView?.getComputedStyle(el).filter;
     const original = el.getAttribute('style');
-    // Set an explicit empty value as well: native filters are not inherited,
-    // whereas CSS custom properties would otherwise inherit from a parent item.
-    (el as SVGElement).style.setProperty(nativeFilterProperty, native && native !== 'none' ? native : ' ');
-    this.nativeFilters.set(el, { original, applied: el.getAttribute('style') || '' });
+    const style = (el as SVGElement).style;
+    const value = style.getPropertyValue('filter'), priority = style.getPropertyPriority('filter');
+    // This is measured presentation, not a static override: keep the native
+    // filter and compose the theme-owned glow only for the current emphasis.
+    style.setProperty('filter', `${native && native !== 'none' ? native + ' ' : ''}var(--kmv-semantic-glow)`);
+    this.nativeFilters.set(el, { original, applied: el.getAttribute('style') || '', value, priority, appliedFilter: style.getPropertyValue('filter') });
   }
   private restoreFilter(el: Element): void {
     const saved = this.nativeFilters.get(el); if (!saved) return;
     if (el.getAttribute('style') === saved.applied) {
       if (saved.original === null) el.removeAttribute('style'); else el.setAttribute('style', saved.original);
-    } else (el as SVGElement).style.removeProperty(nativeFilterProperty);
+    } else {
+      const style = (el as SVGElement).style;
+      // Another owner may change unrelated styles while hovered. Restore only
+      // our still-current filter, retaining that owner's newer declarations.
+      if (style.getPropertyValue('filter') === saved.appliedFilter && style.getPropertyPriority('filter') === '') {
+        if (saved.value) style.setProperty('filter', saved.value, saved.priority);
+        else style.removeProperty('filter');
+      }
+    }
     this.nativeFilters.delete(el);
   }
   private addContext(states: Map<Item, Emphasis>, item: Item, index: Map<Item, Set<Item>>, visited: Set<Item>): void {

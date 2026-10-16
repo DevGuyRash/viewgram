@@ -12,8 +12,11 @@ import { SemanticHighlighter } from '../src/viewer/semantics';
 import { SourceEditorSessions } from '../src/viewer/source-editor-sessions';
 import type { DiagramSource } from '../src/viewer/source';
 import { waitForViewportReady } from '../src/viewer/readiness';
-import { createHtmlElement } from '../src/viewer/dom';
+import { createHtmlElement, setDomCreationPlatform } from '../src/viewer/dom';
 import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from '../src/viewer/settings';
+import { browserDomCreation } from './browser-dom';
+
+setDomCreationPlatform(browserDomCreation);
 
 const scopes: RenderScope[] = [];
 let viewerSettings = { ...DEFAULT_SETTINGS };

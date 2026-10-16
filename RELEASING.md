@@ -18,11 +18,11 @@ updates**, then **Update** or **Update all**.
 1. Commit and push all new work to the permanent lowercase `review` branch
    first. Isolated work branches may integrate there. Preserve existing work
    and history; branch setup is not permission to reset or discard them.
-2. Run `npm run lint:obsidian` as the separate official local source preflight
-   within the authorized scope and record its actual result. Errors must be
-   zero. Keep warnings visible; fix each or document its reviewed necessity
-   without suppressing review rules. Use the component reasons below. Local
-   lint does not establish CSS coverage or an official preview pass.
+2. Run `npm run lint:obsidian` within the authorized scope and record its actual
+   source-rule and local CSS-tripwire results. Errors must be zero. Keep other
+   warnings visible; fix each or document its reviewed necessity without
+   suppressing rules. This preflight does not establish full CSS compatibility
+   or an official preview pass.
 3. On the Obsidian Community entry, select **Review branch**, enter the full
    current `review` HEAD commit SHA, then select **Run preview scan**. The
    official control accepts any branch, tag, or SHA; `review` is this
@@ -51,30 +51,27 @@ infer a pass from local checks, a source push, or an earlier candidate.
 
 ## Local preflight boundaries
 
-`npm run lint:obsidian` is a separate local source preflight. Its errors must
-be zero; warnings remain visible and need a fix or reviewed necessity. It does
-not lint CSS or establish reproducible builds, optional attestations, or an
-official preview pass.
+`npm run lint:obsidian` runs the official recommended TypeScript rules, with
+native DOM creation promoted to an error, then `npm run lint:review-css`.
+The dependency-free CSS tripwires report source locations for priority
+overrides, `:has()` and the previously rejected decoration longhands, ignoring
+comments and quoted values. They cover the two shipping source stylesheets;
+they are not a full CSS parser or browser compatibility database.
 
-Keep these intentional boundaries visible when reviewing warnings:
+Use Obsidian's owning-window DOM helpers in the plugin. Keep native browser
+creation in the standalone platform adapter. Viewer geometry, clipping and
+menu scrolling use owned selectors and CSS variables. Explicit user style
+overrides retain ordinary cascade priority. Semantic emphasis composes the
+measured native filter with a theme-owned glow and restores the original
+filter when emphasis ends; do not replace it with static priority rules.
+Reduced motion also covers native SVG ID/inline animations through one
+viewer-owned lifecycle; native transitions reveal their target immediately,
+and held animation rates and listeners are released on teardown.
 
-- [viewer/dom.ts](src/viewer/dom.ts) uses the owning document's Obsidian
-  `createEl`/`createSvg` helpers when available. Native HTML/SVG creation remains
-  necessary for the shared standalone demo and detached documents that lack
-  those helpers. The CSS-property fallback carries runtime measurements;
-  static presentation belongs in the stylesheet.
-- [styles.css](src/styles.css) confines priority to viewer viewport clipping,
-  resizable frame dimensions, menu/status overflow, and reduced-motion rules.
-  These protect the viewer's interaction boundaries from host styles while
-  retaining theme variables for presentation.
-- [viewer/semantics.css](src/viewer/semantics.css) composes temporary semantic
-  emphasis with the native SVG filter. Its narrow priority must outrank
-  Mermaid's ID selectors and inline filter while preserving native diagram
-  presentation outside that emphasis.
-
-These reasons are scoped warning dispositions, not blanket acceptance of DOM
-fallbacks or priority rules. Review each actual warning against its component
-and record its outcome in the PR; a warning count is not an accepted baseline.
+Keep other warnings visible and review each actual component. No warning count
+is an accepted baseline. The preflight does not establish reproducible builds,
+optional attestations or an official preview pass. Rerun the exact-SHA preview
+after every source change, including changes made to remove advisory warnings.
 
 ## Prepare one candidate
 

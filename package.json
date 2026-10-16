@@ -13,7 +13,8 @@
     "test:browser": "playwright test",
     "check": "npm run typecheck && npm test && npm run test:taxonomy && npm run build && npm run test:browser",
     "test:taxonomy": "node scripts/check-taxonomy.mjs",
-    "lint:obsidian": "eslint --config eslint.obsidian.config.mjs src"
+    "lint:obsidian": "eslint --config eslint.obsidian.config.mjs src && npm run lint:review-css",
+    "lint:review-css": "node scripts/check-review-css.mjs"
   },
   "devDependencies": {
     "@codemirror/commands": "6.8.1",
