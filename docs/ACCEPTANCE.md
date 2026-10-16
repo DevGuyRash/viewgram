@@ -2,11 +2,11 @@
 
 Implementation/source setup comes first. Do not run these checks as a side effect of publication or cloning.
 
-The Viewgram rename changes source and metadata only. Existing build output, release staging, generated previews and installed copies retain their earlier identity. Builds and installation are paused under the storage-capacity hold; do not retag or copy old artifacts as Viewgram. Historical receipts in [upgrade verification](UPGRADE-VERIFICATION.md) do not establish a rebuilt or installed Viewgram version.
+Viewgram has been rebuilt from the renamed source using the existing Node/esbuild script. This publication step did not run the checks below or install/activate the plugin. Historical receipts in [upgrade verification](UPGRADE-VERIFICATION.md) retain their original artifact identities and do not establish new native/mobile qualification.
 
 When the validation phase is authorized, use a new isolated scratch vault and synthetic fixtures. `scripts/prepare-scratch.mjs` verifies that the built manifest matches the source ID, name, author and version before creating a target; rebuild first if old-ID artifacts are present. It derives the plugin folder from the built manifest's validated ID, accepts only a new absolute directory, refuses an existing target or a target inside an existing vault through either lexical or resolved symlink ancestry, and does not enable plugins.
 
-1. After the storage-capacity hold is cleared, build the source, then stage the three artifacts in the new scratch vault under `.obsidian/plugins/viewgram/`.
+1. Build the source, then stage the three artifacts in the new scratch vault under `.obsidian/plugins/viewgram/`.
 2. Compare original rendering with the viewer disabled against the same sources with it enabled.
 3. Check every required type variant, primary whole-chart fit, separate width-fit, true native 100%, pan/recenter, modal fit, close/focus and unchanged source bytes during navigation. Separately verify explicit source saves and Live Preview undo using [upgrade acceptance](UPGRADE-VERIFICATION.md).
 4. Check Live Preview/Reading/Source transitions, async widgets, virtualized removal, source edits, file changes and plugin unload/re-enable.

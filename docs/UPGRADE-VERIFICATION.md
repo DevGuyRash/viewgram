@@ -1,6 +1,6 @@
 # Viewer interaction upgrade
 
-> Viewgram rename checkpoint (October 16): current source metadata uses display name Viewgram, plugin/package ID `viewgram` and repository `DevGuyRash/viewgram`. All older identities, hashes and receipts below remain historical evidence. No renamed runtime build or installation is claimed; rebuilding and release staging are held for storage capacity. Existing installed settings are preserved, with an explicit backup/copy helper for the proven `devguyrash-mermaid-viewer` namespace described in [placement](PLACEMENT.md).
+> Viewgram rename checkpoint (October 16): current source metadata uses display name Viewgram, plugin/package ID `viewgram` and repository `DevGuyRash/viewgram`. All older identities, hashes and receipts below remain historical evidence. The renamed runtime has since been rebuilt using the existing Node/esbuild script for release; installation and new native/mobile qualification are not claimed. Existing installed settings are preserved, with an explicit backup/copy helper for the proven `devguyrash-mermaid-viewer` namespace described in [placement](PLACEMENT.md).
 
 ## Source provenance
 

@@ -18,9 +18,9 @@ Desktop behavior has been qualified as described below. Real mobile keyboards/to
 
 ## Manual installation
 
-Builds and installation are paused under the storage-capacity hold. The Viewgram rename updates source and metadata; existing `dist/`, release staging, generated previews and installed copies are not rebuilt or qualified as Viewgram. Do not retag or copy old artifacts as a Viewgram release.
+Download `main.js`, `manifest.json` and `styles.css` from the [Viewgram releases](https://github.com/DevGuyRash/viewgram/releases). These are the only runtime files. The Community directory submission is pending; manual installation does not require a directory listing.
 
-After the hold is cleared and later validation is authorized, use freshly built and verified `main.js`, `manifest.json` and `styles.css`, or download those files from a verified Viewgram release. Place only those three runtime files in `<vault>/.obsidian/plugins/viewgram/`, preserve any `data.json`, then enable Viewgram in Community plugins. Use the actual Obsidian configuration directory if it has a custom name.
+Close Obsidian before placing those three files in `<vault>/.obsidian/plugins/viewgram/`, preserve any `data.json`, then enable Viewgram in Community plugins. Use the actual Obsidian configuration directory if it has a custom name.
 
 For an existing, confirmed DevGuyRash installation with ID `devguyrash-mermaid-viewer`, disable that plugin and close Obsidian before migrating its settings. From the Viewgram source checkout, pass the actual absolute configuration-directory path:
 
@@ -47,7 +47,7 @@ The third-party `mermaid-viewer` namespace is separate. The helper does not insp
 
 ## Build
 
-Run these commands only after the storage-capacity hold is cleared and a build is authorized. Node 22+ and npm:
+Node 22+ and npm:
 
 ```sh
 npm ci --ignore-scripts
@@ -60,7 +60,7 @@ Source checkout belongs outside a vault, for example `~/repos/viewgram`. Install
 
 ## Current status
 
-The Viewgram change is a source and metadata rename. Build, release, installation and enablement remain pending; existing artifacts retain their earlier identity until rebuilt after the storage-capacity hold. No rebuild or new qualification is claimed for Viewgram.
+Viewgram 0.1.0 has been built from the renamed source with the existing Node/esbuild script. The runtime manifest and MIT notices are verified during release preparation. No new test suite or native/mobile qualification was run for this rename; historical qualification below retains its original scope. Building or publishing a release does not install or enable it in a vault.
 
 The pre-rename upgrade builds on main `c56fbe9`. Its completed qualification passed the plugin/demo build, TypeScript check, 145 Node checks, 38 development parser cases and all 64 browser cases. Eleven browser cases use the exact installed Mermaid 11.13 bundle as an isolated fixture; it is not shipped with the plugin. A subsequent scoped caret-color repair addresses an invisible black caret on dark source-editor backgrounds. Historical artifacts, focused repair evidence and qualification limits are recorded in [upgrade verification](docs/UPGRADE-VERIFICATION.md); those receipts do not qualify renamed artifacts.
 

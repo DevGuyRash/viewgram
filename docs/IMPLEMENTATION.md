@@ -2,7 +2,7 @@
 
 The pre-rename viewer implementation builds on main `c56fbe9`. It augments Obsidian's existing SVG and source lifecycle. Historical checks, artifact identities and native qualification limits are recorded in [upgrade verification](UPGRADE-VERIFICATION.md).
 
-The current source and metadata identify the project as Viewgram, plugin ID `viewgram`, author DevGuyRash and repository `DevGuyRash/viewgram`. Existing build output, release staging, generated previews and installed copies have not been rebuilt or qualified as Viewgram. Builds, release preparation and installation remain paused under the storage-capacity hold; do not retag or copy earlier artifacts as a Viewgram release.
+The current source and metadata identify the project as Viewgram, plugin ID `viewgram`, author DevGuyRash and repository `DevGuyRash/viewgram`. The existing Node/esbuild script has rebuilt the renamed runtime files for release. No new test suite or native/mobile qualification was run during publication, and installed copies are unchanged.
 
 The explicit `scripts/migrate-settings.mjs` helper is prepared for later installation. It accepts only the confirmed DevGuyRash `devguyrash-mermaid-viewer` namespace, backs up and preserves original settings, refuses target settings that already exist, and leaves enabled-plugin lists untouched. It does not inspect or copy third-party `mermaid-viewer` installations. Preparing the helper does not migrate an installed runtime or activate Viewgram; see [placement](PLACEMENT.md).
 
