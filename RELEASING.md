@@ -13,9 +13,84 @@ versions use new GitHub Releases. Installed community plugins do not update
 automatically: users choose **Settings → Community plugins → Check for
 updates**, then **Update** or **Update all**.
 
+## Review branch and promotion gate
+
+1. Commit and push all new work to the permanent lowercase `review` branch
+   first. Isolated work branches may integrate there. Preserve existing work
+   and history; branch setup is not permission to reset or discard them.
+2. Run `npm run lint:obsidian` within the authorized scope and record its actual
+   source-rule and local CSS-tripwire results. Errors must be zero. Keep other
+   warnings visible; fix each or document its reviewed necessity without
+   suppressing rules. This preflight does not establish full CSS compatibility
+   or an official preview pass.
+3. On the Obsidian Community entry, select **Review branch**, enter the full
+   current `review` HEAD commit SHA, then select **Run preview scan**. The
+   official control accepts any branch, tag, or SHA; `review` is this
+   repository's permanent branch convention. Use the SHA so the evidence is
+   fixed to one candidate.
+4. Obtain an actual passing preview with zero errors before opening the
+   `review` → `main` PR. Fix every warning or document its intentional necessity
+   with a reviewed reason; unreviewed warnings block promotion. Record the SHA,
+   report evidence, warning dispositions, and remaining recommendations or
+   unverified optional capabilities/attestations in the PR template. Official
+   warnings are advisory; this repository requires their reviewed disposition
+   before merge. Recommendations remain separately reported outcomes.
+5. Any change to `review` HEAD invalidates its earlier pass. Stop and rerun the
+   preview on the new full SHA before opening or merging the PR, tagging, or
+   publishing. GitHub PR checks are separate evidence; they do not automatically
+   represent the Obsidian preview, and no named GitHub status is assumed.
+6. After the clean preview, merge the PR into `main` and record the resulting
+   main commit. The release source and root manifest must match the scanned
+   candidate. Resolve any merge content changes through `review` and a fresh
+   preview. Create the version tag and public release only after merge and the
+   release gates below.
+
+The owner handles Community access and account authorization as described
+below. An unavailable scan or missing report leaves this gate pending; do not
+infer a pass from local checks, a source push, or an earlier candidate.
+
+## Local preflight boundaries
+
+`npm run lint:obsidian` runs the official recommended TypeScript rules over
+`src` and `demo`, with native DOM creation and development imports promoted to
+errors in plugin source, then `npm run lint:review-css`.
+The dependency-free CSS tripwires report source locations for priority
+overrides, `:has()` and the previously rejected decoration longhands, ignoring
+comments and quoted values. They cover the two shipping source stylesheets;
+they are not a full CSS parser or browser compatibility database.
+
+Use Obsidian's owning-window DOM helpers in the plugin. The standalone browser
+and happy-dom fixtures use `demo/browser-dom.mts`: a development ESM adapter
+whose native `createElement` and `createElementNS` calls intentionally preserve
+the supplied Document and SVG namespace. Ordinary browsers have no Obsidian DOM
+helpers. Keep these two local advisories visible; they are reviewed necessity
+for that adapter only. The official [scanner FAQ](https://docs.obsidian.md/community-directory/faq)
+documents exact development-file exclusions, including `*.mts`; `demo` itself
+is not excluded. This classification does not make native DOM creation suitable
+for shipping plugin code. Static plugin imports are checked by ESLint, and the
+production build requires repository inputs under `src` and permits package
+dependencies. It validates the resolved graph, including reexports and literal
+dynamic imports, before writing `main.js`. These checks do not resolve runtime-computed
+module paths. Verify any new source directory against the official scan scope.
+
+Viewer geometry, clipping and menu scrolling use owned selectors and CSS
+variables. Explicit user style
+overrides retain ordinary cascade priority. Semantic emphasis composes the
+measured native filter with a theme-owned glow and restores the original
+filter when emphasis ends; do not replace it with static priority rules.
+Reduced motion also covers native SVG ID/inline animations through one
+viewer-owned lifecycle; native transitions reveal their target immediately,
+and held animation rates and listeners are released on teardown.
+
+Keep other warnings visible and review each actual component. No warning count
+is an accepted baseline. The preflight does not establish reproducible builds,
+optional attestations or an official preview pass. Rerun the exact-SHA preview
+after every source change, including changes made to remove advisory warnings.
+
 ## Prepare one candidate
 
-1. Choose a new semantic version in `x.y.z` form. Keep the plugin ID `viewgram`.
+1. Prepare source and metadata on `review` for one exact-SHA candidate. Choose
+   a new semantic version in `x.y.z` form. Keep the plugin ID `viewgram`.
 2. Set the same version in `manifest.json`, `package.json`, and both root
    package entries in `package-lock.json`. Keep `minAppVersion` accurate.
 3. Add `"new-plugin-version": "minimum-obsidian-version"` to `versions.json`,
@@ -29,7 +104,9 @@ updates**, then **Update** or **Update all**.
 5. Review the candidate diff, license notices, dependency changes and generated
    runtime files for unintended private data. Commit only the intended source
    and release metadata through the normal repository Git route. The public
-   default branch must contain the matching root manifest and source.
+   `main` branch must contain the matching root manifest and source after the
+   clean-preview PR is merged. A changed candidate needs fresh preview evidence;
+   record unrun gates as pending.
 
 `npm version` alone is not this release procedure: this package has no version
 lifecycle hook synchronizing the Obsidian metadata, and that command can create
@@ -37,8 +114,10 @@ a tag before the candidate is ready.
 
 ## Publish and verify
 
-From the same candidate commit, publish a new GitHub Release with a tag exactly
-equal to `manifest.json`'s version, such as `0.1.1`, without a `v` prefix.
+After merging the clean-preview candidate into `main`, verify the merged
+source and root manifest match the scanned candidate. Build the release from
+that merged commit, then publish a GitHub Release with a tag exactly equal to
+`manifest.json`'s `x.y.z` version, without a `v` prefix.
 Attach only these three non-empty files, using these exact attachment names:
 
 - `dist/main.js` → `main.js`
@@ -71,6 +150,8 @@ use the directory's review controls to inspect the resulting report.
 
 Official references:
 
+- [Preview scans and entry management](https://docs.obsidian.md/community-directory/manage-entry)
+- [Community review FAQ](https://docs.obsidian.md/community-directory/faq)
 - [Submit your plugin](https://docs.obsidian.md/Plugins/Releasing/Submit%20your%20plugin)
 - [Manifest](https://docs.obsidian.md/Reference/Manifest)
 - [Official sample: release metadata and versions.json](https://github.com/obsidianmd/obsidian-sample-plugin#releasing-new-releases)

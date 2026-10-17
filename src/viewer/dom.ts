@@ -1,23 +1,29 @@
-/** Shared viewer DOM creation also runs in the standalone browser demo. */
+/** Each entry point supplies the DOM API available in its platform. */
+export interface DomCreationPlatform {
+  createHtml<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K): HTMLElementTagNameMap[K];
+  createSvg<K extends keyof SVGElementTagNameMap>(doc: Document, tag: K): SVGElementTagNameMap[K];
+}
+
+let creationPlatform: DomCreationPlatform | undefined;
+
+export function setDomCreationPlatform(platform: DomCreationPlatform): void {
+  creationPlatform = platform;
+}
+
+function domCreationPlatform(): DomCreationPlatform {
+  if (!creationPlatform) throw new Error('The viewer DOM platform has not been initialized.');
+  return creationPlatform;
+}
+
 export function createHtmlElement<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
-  const win = doc.defaultView;
-  let element: HTMLElementTagNameMap[K];
-  if (typeof win?.createEl === 'function') element = win.createEl(tag);
-  else {
-    // The standalone demo and detached documents do not provide Obsidian DOM helpers.
-    // eslint-disable-next-line obsidianmd/prefer-create-el -- Preserve the owning document without requiring the Obsidian runtime.
-    element = doc.createElement(tag);
-  }
+  const element = domCreationPlatform().createHtml(doc, tag);
   if (className) element.className = className;
   if (text !== undefined) element.textContent = text;
   return element;
 }
 
 export function createSvgElement<K extends keyof SVGElementTagNameMap>(doc: Document, tag: K): SVGElementTagNameMap[K] {
-  const win = doc.defaultView;
-  if (typeof win?.createSvg === 'function') return win.createSvg(tag);
-  // eslint-disable-next-line obsidianmd/prefer-create-el -- SVG creation must also work in the standalone demo and detached documents.
-  return doc.createElementNS('http://www.w3.org/2000/svg', tag);
+  return domCreationPlatform().createSvg(doc, tag);
 }
 
 /** Runtime measurements are CSS variables; static presentation belongs in styles.css. */

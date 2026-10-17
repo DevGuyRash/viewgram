@@ -1,9 +1,6 @@
 /* Temporary SVG emphasis only: retain every native fill, stroke, dash and marker. */
 svg[data-kmv-family] .kmv-semantic-dim { opacity: .25; }
-/* Native Mermaid ID selectors and inline filters require this narrow priority. */
-svg[data-kmv-family] :is(.kmv-semantic-active, .kmv-semantic-related, .kmv-semantic-incoming, .kmv-semantic-outgoing, .kmv-semantic-both, .kmv-semantic-undirected) {
-  filter: var(--kmv-semantic-native-filter,) var(--kmv-semantic-glow) !important;
-}
+/* The highlighter composes this themed glow with each measured native filter. */
 svg[data-kmv-family] .kmv-semantic-active { --kmv-semantic-glow: drop-shadow(0 0 3px #e7b653) drop-shadow(0 0 1px #e7b653); }
 svg[data-kmv-family] .kmv-semantic-related { --kmv-semantic-glow: drop-shadow(0 0 2px #a7a8b9); }
 svg[data-kmv-family] .kmv-semantic-incoming { --kmv-semantic-glow: drop-shadow(0 0 2px #63a4ff); }

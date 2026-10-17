@@ -22,8 +22,8 @@
   position: relative; margin: 12px 0; border: 1px solid var(--kmv-border); border-radius: var(--kmv-radius);
   background: var(--kmv-bg); line-height: 1.4;
 }
-/* synthetic host ui-misc has broad overflow rules; only the viewport clips the SVG. */
-.kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { overflow: hidden !important; }
+/* Owned specificity keeps clipping local; explicit user overrides keep their priority. */
+.kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { overflow: var(--kmv-viewport-overflow, hidden); }
 .kmv-viewer .kmv-viewport {
   position: relative; height: 300px; min-height: var(--kmv-viewport-min-height, 150px); width: 100%; flex: 1 0 auto;
   border-radius: var(--kmv-radius) var(--kmv-radius) 0 0; box-sizing: border-box; outline-offset: -3px;
@@ -32,19 +32,19 @@
 }
 .kmv-viewer[data-background="dots"] .kmv-viewport { background-image: radial-gradient(var(--kmv-border) .7px, transparent .7px); }
 .kmv-viewer[data-background="grid"] .kmv-viewport { background-image: linear-gradient(to right, var(--kmv-border) 1px, transparent 1px), linear-gradient(to bottom, var(--kmv-border) 1px, transparent 1px); }
-/* Keep owned resize geometry above host ID selectors. */
-.kmv-viewer.kmv-viewer.kmv-resizable { height: var(--kmv-viewer-height, auto) !important; block-size: var(--kmv-viewer-height, auto) !important; min-height: 0; max-height: var(--kmv-viewer-max-height, none); flex: 0 0 auto; }
-.kmv-viewer.kmv-viewer.kmv-resizable .kmv-viewport.kmv-viewport { height: var(--kmv-viewport-height, 300px) !important; flex: 1 1 0; min-height: 0; }
+/* The frame and viewport share one measured size through owned custom properties. */
+.kmv-viewer.kmv-viewer.kmv-resizable { block-size: var(--kmv-frame-block-size, var(--kmv-viewer-height, auto)); min-height: 0; max-height: var(--kmv-viewer-max-height, none); flex: 0 0 auto; }
+.kmv-viewer.kmv-viewer.kmv-resizable .kmv-viewport.kmv-viewport { height: var(--kmv-frame-viewport-height, var(--kmv-viewport-height, 300px)); flex: 1 1 0; min-height: 0; }
 .kmv-viewer .kmv-accessible-help[hidden], .kmv-viewer .kmv-hint[hidden] { display: none; }
 .kmv-viewer .kmv-viewport .kmv-surface {
   position: absolute; top: 0; left: 0; display: block; width: max-content; height: max-content;
   margin: 0; padding: 0; border: 0; min-width: 0; min-height: 0; max-width: none; max-height: none;
   transform: var(--kmv-surface-transform, none); transform-origin: 0 0; user-select: none;
 }
-/* Native SVGs include inline dimensions and ID-scoped sizing rules. */
+/* The controller parks native inline sizing while wrapped, then restores it on disposal. */
 .kmv-viewer .kmv-viewport .kmv-surface > svg {
-  width: var(--kmv-native-width) !important; height: var(--kmv-native-height) !important;
-  max-width: none !important; max-height: none !important; display: block; margin: 0;
+  width: var(--kmv-native-width); height: var(--kmv-native-height);
+  max-width: var(--kmv-native-max-width, none); max-height: none; display: block; margin: 0;
 }
 .kmv-viewer.kmv-can-pan .kmv-viewport { cursor: grab; }
 .kmv-viewer.kmv-dragging .kmv-viewport { cursor: grabbing; }
@@ -140,16 +140,16 @@
 .kmv-viewer .kmv-tool-menu .kmv-control-label { overflow-wrap: anywhere; }
 .kmv-viewer .kmv-zoom-menu { right: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; min-inline-size: 150px; }
 .kmv-viewer .kmv-zoom-menu[hidden], .kmv-viewer .kmv-tool-menu[hidden] { display: none; }
-/* Host preview snippets can force every div to overflow visibly. */
+/* Menus and status messages own their scrolling boundary. */
 .kmv-viewer.kmv-viewer .kmv-tool-menu.kmv-tool-menu,
 .kmv-viewer.kmv-viewer .kmv-zoom-menu.kmv-zoom-menu,
-.kmv-viewer.kmv-viewer .kmv-action-status.kmv-action-status { overflow: auto !important; }
+.kmv-viewer.kmv-viewer .kmv-action-status.kmv-action-status { overflow: var(--kmv-scroll-overflow, auto); }
 .kmv-viewer .kmv-action-status { max-inline-size: 420px; max-block-size: 4.5em; color: var(--kmv-muted); font-size: var(--font-ui-smaller, 12px); overflow-wrap: anywhere; overflow: auto; }
 .kmv-viewer .kmv-action-status:empty { display: none; }
 .kmv-viewer .kmv-action-status .kmv-button { margin-inline-start: 6px; }
 .kmv-viewer.kmv-viewer .kmv-action-status.kmv-action-status-transient {
   position: absolute; inline-size: 0; block-size: 0; margin: 0; padding: 0; border: 0;
-  overflow: hidden !important; white-space: nowrap;
+  --kmv-scroll-overflow: hidden; white-space: nowrap;
 }
 
 .kmv-dialog {
@@ -233,14 +233,15 @@
   .kmv-dialog { block-size: 92dvh; max-block-size: 92dvh; }
   .kmv-source-editor { --kmv-editor-screen-height: 100dvh; }
 }
+/* Reduced-motion defaults for the viewer and its native diagram content. */
 @media (prefers-reduced-motion: reduce) {
-  .kmv-viewer, .kmv-viewer *, .kmv-dialog, .kmv-source-editor, .kmv-source-editor * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  :is(.kmv-viewer.kmv-viewer.kmv-viewer, .kmv-dialog.kmv-dialog.kmv-dialog, .kmv-source-editor.kmv-source-editor.kmv-source-editor),
+  :is(.kmv-viewer.kmv-viewer.kmv-viewer, .kmv-dialog.kmv-dialog.kmv-dialog, .kmv-source-editor.kmv-source-editor.kmv-source-editor) * { animation: none; transition: none; scroll-behavior: auto; }
 }
 @media print {
   .kmv-viewer .kmv-footer, .kmv-viewer .kmv-resize-handle { display: none; }
-  .kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { height: auto; overflow: visible !important; }
-  .kmv-viewer.kmv-viewer.kmv-resizable { height: auto !important; block-size: auto !important; max-height: none; }
-  .kmv-viewer.kmv-viewer.kmv-resizable .kmv-viewport.kmv-viewport { height: auto !important; }
+  .kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport { --kmv-viewport-overflow: visible; height: auto; }
+  .kmv-viewer.kmv-viewer.kmv-resizable { --kmv-frame-block-size: auto; --kmv-frame-viewport-height: auto; max-height: none; }
   .kmv-viewer .kmv-viewport .kmv-surface { position: static; width: auto; height: auto; transform: none; }
-  .kmv-viewer .kmv-viewport .kmv-surface > svg { max-width: 100% !important; height: auto !important; }
+  .kmv-viewer .kmv-viewport .kmv-surface > svg { --kmv-native-max-width: 100%; --kmv-native-height: auto; }
 }

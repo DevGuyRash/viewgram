@@ -5,6 +5,10 @@ import { livePreviewExtension } from './editor/live-preview';
 import { SourceEditorSessions } from './viewer/source-editor-sessions';
 import { DEFAULT_SETTINGS, readSettings, settingsRecord, type ViewerSettings } from './viewer/settings';
 import { ViewgramSettingTab } from './settings';
+import { setDomCreationPlatform } from './viewer/dom';
+import { obsidianDomCreation } from './viewer/obsidian-dom';
+
+setDomCreationPlatform(obsidianDomCreation);
 
 class MermaidRenderChild extends MarkdownRenderChild {
   private scope?: RenderScope;

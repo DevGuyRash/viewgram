@@ -7,6 +7,9 @@ import { RenderScope } from '../src/viewer/render-scope';
 import { ViewportController, type ViewerActionResult } from '../src/viewer/controller';
 import { LivePreviewScope } from '../src/editor/live-preview-scope';
 import { waitForViewportReady } from '../src/viewer/readiness';
+import { setDomCreationPlatform } from '../src/viewer/dom';
+import { browserDomCreation } from '../demo/browser-dom.mjs';
+setDomCreationPlatform(browserDomCreation);
 let window: Window;
 const observers = new Set<FakeResizeObserver>();
 class FakeResizeObserver {

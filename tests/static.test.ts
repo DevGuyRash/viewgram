@@ -9,12 +9,12 @@ test('component CSS avoids expensive selectors and has higher overflow specifici
  const css=readFileSync('src/styles.css','utf8').replace(/\/\*[\s\S]*?\*\//g,'');
  assert.ok(!css.includes(':has('));assert.ok(!css.includes('*='));assert.ok(!css.includes('will-change'));assert.ok(!css.includes('.workspace-'));
  assert.ok(css.includes('.kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport'));
- assert.ok(css.includes('overflow: hidden !important'));
+ assert.ok(css.includes('overflow: var(--kmv-viewport-overflow, hidden) !important'));
 });
 test('private plugin identity is namespaced and its installation path is documented',()=>{
  const manifest=JSON.parse(readFileSync('manifest.json','utf8'));
  assert.equal(manifest.id,'viewgram');assert.equal(manifest.name,'Viewgram');
- assert.equal(manifest.author,'DevGuyRash');assert.equal(manifest.version,'0.1.0');
+ assert.equal(manifest.author,'DevGuyRash');assert.equal(manifest.version,JSON.parse(readFileSync('package.json','utf8')).version);
  assert.equal(JSON.parse(readFileSync('package.json','utf8')).name,'viewgram');
  assert.ok(readFileSync('docs/PLACEMENT.md','utf8').includes('<vault>/.obsidian/plugins/viewgram/'));
 });
@@ -25,5 +25,5 @@ test('Live Preview uses public view lifecycle and keeps host CodeMirror external
 });
 test('print stage geometry overrides native-context stage geometry at equal specificity',()=>{
  const css=readFileSync('src/styles.css','utf8');
- assert.ok(css.includes('.kmv-viewer .kmv-viewport .kmv-surface { position: static; width: auto; height: auto; transform: none !important; }'));
+ assert.ok(css.includes('.kmv-viewer .kmv-viewport .kmv-surface { position: static; width: auto; height: auto; transform: none; }'));
 });

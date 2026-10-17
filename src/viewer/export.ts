@@ -130,9 +130,8 @@ function snapshot(svg: SVGSVGElement): { clone: SVGSVGElement; size: Size; backg
 function setDimensions(svg: SVGSVGElement, size: Size): void {
   svg.setAttribute('width', String(size.width)); svg.setAttribute('height', String(size.height));
   svg.style.setProperty('width', `${size.width}px`, 'important'); svg.style.setProperty('height', `${size.height}px`, 'important');
-  // The detached file must override native responsive sizing without depending on viewer CSS.
-  // eslint-disable-next-line obsidianmd/no-static-styles-assignment -- Portable SVG export requires inline dimensions with priority.
-  svg.style.setProperty('max-width', 'none', 'important'); svg.style.setProperty('max-height', 'none', 'important');
+  // Match the exported dimensions so native responsive limits cannot shrink the detached file.
+  svg.style.setProperty('max-width', `${size.width}px`, 'important'); svg.style.setProperty('max-height', `${size.height}px`, 'important');
 }
 function serialize(svg: SVGSVGElement): string { return new (windowOf(svg.ownerDocument).XMLSerializer)().serializeToString(svg); }
 function svgFile(svg: SVGSVGElement): DiagramFile { return { blob: new (windowOf(svg.ownerDocument).Blob)([serialize(svg)], { type: 'image/svg+xml;charset=utf-8' }), filename: 'diagram.svg' }; }

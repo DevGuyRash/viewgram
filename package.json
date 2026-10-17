@@ -1,6 +1,6 @@
 {
   "name": "viewgram",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -12,22 +12,29 @@
     "demo": "node scripts/serve.mjs",
     "test:browser": "playwright test",
     "check": "npm run typecheck && npm test && npm run test:taxonomy && npm run build && npm run test:browser",
-    "test:taxonomy": "node scripts/check-taxonomy.mjs"
+    "test:taxonomy": "node scripts/check-taxonomy.mjs",
+    "lint:obsidian": "eslint --config eslint.obsidian.config.mjs src demo && npm run lint:review-css",
+    "lint:review-css": "node scripts/check-review-css.mjs"
   },
   "devDependencies": {
     "@codemirror/commands": "6.8.1",
     "@codemirror/language": "6.13.1",
     "@codemirror/state": "6.5.0",
     "@codemirror/view": "6.38.6",
+    "@eslint/js": "9.39.4",
+    "@eslint/json": "0.14.0",
     "@lezer/highlight": "1.2.5",
     "@playwright/test": "1.56.1",
     "@types/node": "24.10.1",
     "esbuild": "0.25.12",
+    "eslint": "9.39.4",
+    "eslint-plugin-obsidianmd": "0.4.2",
     "happy-dom": "20.14.5",
     "mermaid": "11.17.2",
     "obsidian": "1.13.1",
     "tsx": "4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.65.0"
   },
   "overrides": {
     "moment": "2.31.0",
