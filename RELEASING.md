@@ -115,9 +115,12 @@ a tag before the candidate is ready.
 ## Publish and verify
 
 After merging the clean-preview candidate into `main`, verify the merged
-source and root manifest match the scanned candidate. Build the release from
-that merged commit, then publish a GitHub Release with a tag exactly equal to
-`manifest.json`'s `x.y.z` version, without a `v` prefix.
+source tree and root manifest match the scanned, qualified candidate and confirm
+its recorded attachment hashes. Those exact qualified attachments may supply the
+release; a merge commit with the same tree does not require another build.
+Changed release inputs return through `review`, fresh preview and qualification.
+Publish a GitHub Release with a tag exactly equal to `manifest.json`'s `x.y.z`
+version, without a `v` prefix.
 Attach only these three non-empty files, using these exact attachment names:
 
 - `dist/main.js` → `main.js`
@@ -132,10 +135,24 @@ candidate; verify the tag target and public release access. Preserve published
 releases. A correction gets a new version and release rather than replacing
 assets under an existing tag.
 
-Publishing does not install or enable the plugin in a vault. Install the
-verified release files using the README procedure, preserve `data.json`, and
-confirm that Obsidian actually loads the new version. Preserve the confirmed
-legacy namespace and unrelated plugins as described in
+An exact branch preview does not verify the future release's attachments or
+attestations. Verify the published release and each downloaded asset with the
+supported `gh release verify` and `gh release verify-asset` commands and retain
+the actual reports. GitHub's immutable `release/v0.2` attestations bind the tag,
+commit and asset digests; they do not establish SLSA workflow build provenance.
+Keep any unverified build-provenance claim explicit.
+
+Before installation or activation, require the published version's completed
+Obsidian full release review with zero errors and every warning fixed or given a
+reviewed necessity. A branch preview or GitHub verification alone does not clear
+this gate. If GitHub and Obsidian disagree, preserve both reports, protections
+and published assets; stop affected delivery pending diagnosis. Never fabricate
+provenance or weaken checks to force agreement.
+
+Publishing does not install or enable the plugin in a vault. After those release
+checks pass, install the verified files using the README procedure, preserve
+`data.json`, and confirm that Obsidian actually loads the new version. Preserve
+the confirmed legacy namespace and unrelated plugins as described in
 [placement](docs/PLACEMENT.md).
 
 ## Directory review and owner steps
@@ -145,8 +162,9 @@ and **Plugins → New plugin** with the verified repository URL and intended
 owner. The owner personally handles sign-in, any new GitHub authorization, and
 acceptance of Developer policies and the support/remove-or-transfer commitment.
 Submission, a published listing and successful automated review are separate
-states. Address review errors with a new source version and GitHub Release;
-use the directory's review controls to inspect the resulting report.
+states. When a review error requires source or asset changes, use a new source
+version and GitHub Release; use the directory's review controls to inspect the
+resulting report. Verification disagreements follow the diagnosis gate above.
 
 Official references:
 

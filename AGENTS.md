@@ -36,6 +36,15 @@ a fresh preview. Delivery requires a GitHub Release with the exact unprefixed
 `x.y.z` version tag and matching `main.js`, `manifest.json` and `styles.css`
 attachments, followed by download/hash verification.
 
+An exact branch preview does not verify future release assets or attestations.
+Before installation or activation, verify the release and each downloaded asset
+with supported `gh release` verification, then require a completed Obsidian full
+release review with zero errors and reviewed warning dispositions. Immutable
+`release/v0.2` attestations bind the tag, commit and assets; SLSA workflow build
+provenance remains separate evidence. Preserve protections, published assets and
+both reports. If GitHub and Obsidian disagree, stop affected delivery pending
+diagnosis; never fabricate provenance or weaken checks.
+
 Use the existing build and verification commands within the user's authorized
 scope. Preserve settings, unrelated work and published release assets. Report
 build, publication, installation, activation and directory review as separate
