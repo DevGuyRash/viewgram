@@ -8,7 +8,7 @@ import { SourceEditorSessions } from '../src/viewer/source-editor-sessions';
 import { RenderScope } from '../src/viewer/render-scope';
 import type { DiagramSource } from '../src/viewer/source';
 import { setDomCreationPlatform } from '../src/viewer/dom';
-import { browserDomCreation } from '../demo/browser-dom';
+import { browserDomCreation } from '../demo/browser-dom.mjs';
 
 setDomCreationPlatform(browserDomCreation);
 

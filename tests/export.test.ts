@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Window } from 'happy-dom';
 import { copyImage, copyText, DiagramExportError, downloadFile, exportDiagram } from '../src/viewer/export';
 import { setDomCreationPlatform } from '../src/viewer/dom';
-import { browserDomCreation } from '../demo/browser-dom';
+import { browserDomCreation } from '../demo/browser-dom.mjs';
 
 setDomCreationPlatform(browserDomCreation);
 

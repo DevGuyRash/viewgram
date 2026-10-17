@@ -51,16 +51,30 @@ infer a pass from local checks, a source push, or an earlier candidate.
 
 ## Local preflight boundaries
 
-`npm run lint:obsidian` runs the official recommended TypeScript rules, with
-native DOM creation promoted to an error, then `npm run lint:review-css`.
+`npm run lint:obsidian` runs the official recommended TypeScript rules over
+`src` and `demo`, with native DOM creation and development imports promoted to
+errors in plugin source, then `npm run lint:review-css`.
 The dependency-free CSS tripwires report source locations for priority
 overrides, `:has()` and the previously rejected decoration longhands, ignoring
 comments and quoted values. They cover the two shipping source stylesheets;
 they are not a full CSS parser or browser compatibility database.
 
-Use Obsidian's owning-window DOM helpers in the plugin. Keep native browser
-creation in the standalone platform adapter. Viewer geometry, clipping and
-menu scrolling use owned selectors and CSS variables. Explicit user style
+Use Obsidian's owning-window DOM helpers in the plugin. The standalone browser
+and happy-dom fixtures use `demo/browser-dom.mts`: a development ESM adapter
+whose native `createElement` and `createElementNS` calls intentionally preserve
+the supplied Document and SVG namespace. Ordinary browsers have no Obsidian DOM
+helpers. Keep these two local advisories visible; they are reviewed necessity
+for that adapter only. The official [scanner FAQ](https://docs.obsidian.md/community-directory/faq)
+documents exact development-file exclusions, including `*.mts`; `demo` itself
+is not excluded. This classification does not make native DOM creation suitable
+for shipping plugin code. Static plugin imports are checked by ESLint, and the
+production build requires repository inputs under `src` and permits package
+dependencies. It validates the resolved graph, including reexports and literal
+dynamic imports, before writing `main.js`. These checks do not resolve runtime-computed
+module paths. Verify any new source directory against the official scan scope.
+
+Viewer geometry, clipping and menu scrolling use owned selectors and CSS
+variables. Explicit user style
 overrides retain ordinary cascade priority. Semantic emphasis composes the
 measured native filter with a theme-owned glow and restores the original
 filter when emphasis ends; do not replace it with static priority rules.

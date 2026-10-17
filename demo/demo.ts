@@ -14,7 +14,7 @@ import type { DiagramSource } from '../src/viewer/source';
 import { waitForViewportReady } from '../src/viewer/readiness';
 import { createHtmlElement, setDomCreationPlatform } from '../src/viewer/dom';
 import { DEFAULT_SETTINGS, readSettings, type ViewerSettings } from '../src/viewer/settings';
-import { browserDomCreation } from './browser-dom';
+import { browserDomCreation } from './browser-dom.mjs';
 
 setDomCreationPlatform(browserDomCreation);
 

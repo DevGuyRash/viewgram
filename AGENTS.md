@@ -15,10 +15,14 @@ GitHub PR checks and local lint are separate evidence; neither is an Obsidian
 preview result, and no Obsidian GitHub status name is assumed.
 
 Run `npm run lint:obsidian` within the user's authorized scope. It combines the
-official source rules with the local `lint:review-css` tripwires. Native DOM
-creation in plugin source is an error; standalone adapters belong to the
-standalone entry point. Keep other warnings visible and review them without
-suppressing rules. Do not introduce stylesheet priority overrides, `:has()`, or
+official source rules over `src` and `demo` with the local CSS tripwires. Keep
+shipping plugin code under `src`; native DOM creation and development imports
+are errors there, and the build checks its resolved input graph. The standalone
+browser adapter is a development ESM module, locally checked with its native
+DOM necessity explained in `RELEASING.md`. Check official scan scope when adding
+source paths; development directory names alone do not imply exclusion. Keep
+other warnings visible and review them without suppressing rules. Do not
+introduce stylesheet priority overrides, `:has()`, or
 the rejected decoration longhands. Use owned state classes and CSS variables.
 The CSS tripwires cover those patterns only; they do not establish complete CSS
 compatibility, reproducible builds, attestations, or an official preview pass.
