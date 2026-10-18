@@ -5,8 +5,10 @@
 A plugin update is delivered through a published GitHub Release in
 [DevGuyRash/viewgram](https://github.com/DevGuyRash/viewgram). Ordinary source
 pushes, local builds and GitHub workflow artifacts do not publish a plugin
-update. This repository uses a manual release process; there is no automatic
-release-on-push command.
+update. The shared [release contract](docs/RELEASE-CONTRACT.md) automates
+qualification, draft publication and verification after a manual release
+dispatch. It defaults to a dry run. Main pushes, PRs, tags and schedules do not
+start hosted jobs. Source changes alone do not enable Actions or publish.
 
 Obsidian needs the initial Community directory submission only. Subsequent
 versions use new GitHub Releases. Installed community plugins do not update
@@ -113,6 +115,17 @@ lifecycle hook synchronizing the Obsidian metadata, and that command can create
 a tag before the candidate is ready.
 
 ## Publish and verify
+
+The matching workflow and publisher are maintained canonically here and copied
+to Mica at a pinned commit. `npm run test:release` tests the protocol with a fake
+host; `npm run release:parity` checks the bundle hashes. `npm run release:qualify`
+runs the existing product check/build/browser suite, Obsidian preflight and
+release tests. These commands do not assert a Community preview or release pass.
+Follow the shared contract's first-run settings checks and exact-SHA dispatch
+instructions. Publication requires the existing gates below. The already
+published immutable `0.1.2` is never republished or modified; its previously
+observed GitHub/Obsidian attestation disagreement remains a separate diagnosis
+until a fresh authenticated full review establishes otherwise.
 
 After merging the clean-preview candidate into `main`, verify the merged
 source tree and root manifest match the scanned, qualified candidate and confirm
