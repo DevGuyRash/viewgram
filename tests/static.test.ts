@@ -9,7 +9,9 @@ test('component CSS avoids expensive selectors and has higher overflow specifici
  const css=readFileSync('src/styles.css','utf8').replace(/\/\*[\s\S]*?\*\//g,'');
  assert.ok(!css.includes(':has('));assert.ok(!css.includes('*='));assert.ok(!css.includes('will-change'));assert.ok(!css.includes('.workspace-'));
  assert.ok(css.includes('.kmv-viewer.kmv-viewer .kmv-viewport.kmv-viewport'));
- assert.ok(css.includes('overflow: var(--kmv-viewport-overflow, hidden) !important'));
+ assert.ok(css.includes('overflow: var(--kmv-viewport-overflow, hidden);'));
+ assert.ok(!css.includes('!important'));
+ assert.ok(css.includes('height: var(--kmv-frame-viewport-height, var(--kmv-viewport-height, 300px))'));
 });
 test('private plugin identity is namespaced and its installation path is documented',()=>{
  const manifest=JSON.parse(readFileSync('manifest.json','utf8'));
