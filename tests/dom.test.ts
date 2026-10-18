@@ -19,6 +19,10 @@ class FakeResizeObserver {
   disconnect() { observers.delete(this); }
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,25));
+// Pure controller tests inspect its owned size variable; browser tests prove CSS layout.
+function viewportHeight(controller: ViewportController): number {
+ return parseFloat(controller.root.style.getPropertyValue('--kmv-viewport-height'));
+}
 function svgHost(width=2000,height=800) {
  const host=window.document.createElement('div');host.className='mermaid';
  const svg=window.document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox',`0 0 ${width} ${height}`);svg.setAttribute('id','native-svg');svg.setAttribute('style','max-width: 2000px;');host.append(svg);window.document.body.append(host);
@@ -99,6 +103,12 @@ test('synthetic host overflow override leaves modal geometry and manual-touch ov
  assert.equal(window.getComputedStyle(modal).touchAction,'none');v.dispose();
 });
 
+test('explicit user overflow priority is preserved without changing native SVG styles',async()=>{
+ const style=window.document.createElement('style');style.textContent=readFileSync('src/styles.css','utf8')+'\n'+readFileSync('tests/fixtures/host-overflow.css','utf8')+'\n.kmv-viewport { overflow: visible !important; }';window.document.head.append(style);
+ const {host,svg}=svgHost();host.classList.add('markdown-preview-section');const original=svg.getAttribute('style');const viewer=new DiagramViewer(svg);await tick();
+ assert.equal(window.getComputedStyle(viewer.inline.viewport as any).overflow,'visible');
+ viewer.dispose();assert.equal(svg.getAttribute('style'),original);
+});
 test('pointer starts stay inside noneditable viewer while zoom textbox can focus',()=>{
  const {host,svg}=svgHost();let pointers=0;let mice=0;host.addEventListener('pointerdown',()=>pointers++);host.addEventListener('mousedown',()=>mice++);
  const v=new DiagramViewer(svg);const input=v.inline.zoomInput;
@@ -197,12 +207,12 @@ test('zoom presets and middle-button drag keep the independent viewport controls
 });
 test('inline natural height respects viewport cap and resize handle restores automatic mode',()=>{
  const {svg}=svgHost(600,250);const v=new DiagramViewer(svg),c=v.inline;
- Object.defineProperty(c.viewport,'clientWidth',{get:()=>600});Object.defineProperty(c.viewport,'clientHeight',{get:()=>parseFloat(c.viewport.style.height)||300});
- c.resize({width:600,height:300});const natural=parseFloat(c.viewport.style.height);assert.equal(natural,269);
+ Object.defineProperty(c.viewport,'clientWidth',{get:()=>600});Object.defineProperty(c.viewport,'clientHeight',{get:()=>viewportHeight(c)||300});
+ c.resize({width:600,height:300});const natural=viewportHeight(c);assert.equal(natural,269);
  const handle=c.root.querySelector('[aria-label="Resize diagram height"]')!;
- handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}) as any);assert.equal(parseFloat(c.viewport.style.height),309);
- handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}) as any);assert.equal(parseFloat(c.viewport.style.height),natural);
- v.dispose();const tall=svgHost(600,9000);const t=new DiagramViewer(tall.svg);t.inline.resize({width:600,height:300});assert.ok(parseFloat(t.inline.viewport.style.height)<=window.innerHeight*.88);t.dispose();
+ handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}) as any);assert.equal(viewportHeight(c),309);
+ handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}) as any);assert.equal(viewportHeight(c),natural);
+ v.dispose();const tall=svgHost(600,9000);const t=new DiagramViewer(tall.svg);t.inline.resize({width:600,height:300});assert.ok(viewportHeight(t.inline)<=window.innerHeight*.88);t.dispose();
 });
 
 function deferred<T>() {
@@ -260,9 +270,9 @@ test('visualViewport-only changes clamp preferred height and their listeners are
  }
  const visual=new Visual();Object.defineProperty(window,'visualViewport',{value:visual,configurable:true});
  const {host,svg}=svgHost(600,250),c=new ViewportController(svg,{mode:'width'});host.append(c.root);
- Object.defineProperty(c.viewport,'clientWidth',{get:()=>600});Object.defineProperty(c.viewport,'clientHeight',{get:()=>parseFloat(c.viewport.style.height)||300});c.resize({width:600,height:300});
- const handle=c.root.querySelector('[aria-label="Resize diagram height"]')!;handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}) as any);const preferred=parseFloat(c.viewport.style.height);
- const outerHeight=window.innerHeight;visual.height=240;visual.dispatchEvent(new window.Event('resize'));assert.ok(parseFloat(c.viewport.style.height)<150);assert.equal(window.innerHeight,outerHeight);
- visual.height=768;visual.dispatchEvent(new window.Event('resize'));assert.equal(parseFloat(c.viewport.style.height),preferred);assert.deepEqual([...visual.active].sort(),['resize','scroll']);
- c.dispose();assert.equal(visual.active.size,0);const released=c.viewport.style.height;visual.height=180;visual.dispatchEvent(new window.Event('resize'));assert.equal(c.viewport.style.height,released);
+ Object.defineProperty(c.viewport,'clientWidth',{get:()=>600});Object.defineProperty(c.viewport,'clientHeight',{get:()=>viewportHeight(c)||300});c.resize({width:600,height:300});
+ const handle=c.root.querySelector('[aria-label="Resize diagram height"]')!;handle.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}) as any);const preferred=viewportHeight(c);
+ const outerHeight=window.innerHeight;visual.height=240;visual.dispatchEvent(new window.Event('resize'));assert.ok(viewportHeight(c)<150);assert.equal(window.innerHeight,outerHeight);
+ visual.height=768;visual.dispatchEvent(new window.Event('resize'));assert.equal(viewportHeight(c),preferred);assert.deepEqual([...visual.active].sort(),['resize','scroll']);
+ c.dispose();assert.equal(visual.active.size,0);const released=viewportHeight(c);visual.height=180;visual.dispatchEvent(new window.Event('resize'));assert.equal(viewportHeight(c),released);
 });

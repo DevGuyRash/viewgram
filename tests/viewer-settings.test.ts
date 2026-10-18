@@ -51,6 +51,14 @@ before(async () => {
       }
       export class PluginSettingTab {
         constructor(app, plugin) { this.app = app; this.plugin = plugin; this.containerEl = plugin.settingsContainer; }
+        // Model the public 1.13+ host renderer, not the former plugin-owned display().
+        display() {
+          this.containerEl.empty();
+          for (const group of this.getSettingDefinitions()) {
+            for (const item of group.items) item.render(new Setting(this.containerEl).setName(item.name).setDesc(item.desc));
+          }
+        }
+        update() { this.display(); }
       }
       const records = new WeakMap();
       export function controls(container) { return records.get(container) || []; }
@@ -63,6 +71,7 @@ before(async () => {
           const record = { name: this.name };
           const entries = controls(this.container); entries.push(record); records.set(this.container, entries);
           const control = {
+            sliderEl: { title: '' },
             addOptions() { return this; }, setLimits() { return this; }, setDynamicTooltip() { return this; },
             setButtonText() { return this; }, setValue(value) { record.value = value; return this; },
             onChange(callback) { record.change = callback; return this; },

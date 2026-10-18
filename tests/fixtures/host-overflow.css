@@ -1,2 +1,2 @@
-/* Synthetic hostile host rule for viewport-clipping regression coverage. */
-.markdown-preview-section div:not(.block-language-dataview):not(.search-result-container) { overflow: visible !important; }
+/* Synthetic broad host rule; explicit user priority is tested separately. */
+.markdown-preview-section div:not(.block-language-dataview):not(.search-result-container) { overflow: visible; }
