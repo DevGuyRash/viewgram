@@ -187,3 +187,9 @@ Official references:
 - [Manifest](https://docs.obsidian.md/Reference/Manifest)
 - [Official sample: release metadata and versions.json](https://github.com/obsidianmd/obsidian-sample-plugin#releasing-new-releases)
 - [Community plugin update instructions](https://obsidian.md/help/Extending%2BObsidian/Community%2Bplugins)
+
+Future releases also require the shared [build-provenance gate](docs/RELEASE-CONTRACT.md):
+attest the three exact qualified assets and verify repository, source commit,
+signing workflow and hashes before publication. Preserve immutable-release
+verification afterward as a separate gate. Workflow preparation does not prove
+provenance exists; keep activation approval and actual verification explicit.

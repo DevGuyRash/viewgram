@@ -59,3 +59,9 @@ it does not replace authenticated Community reports. Keep the only hosted
 trigger manual `workflow_dispatch`, default publication false, and no general
 main/PR/tag/scheduled CI. Changing source does not authorize enabling hosted
 runs, changing release protections or editing immutable assets.
+
+Future releases also require the shared [build-provenance gate](docs/RELEASE-CONTRACT.md):
+attest the three exact qualified assets and verify repository, source commit,
+signing workflow and hashes before publication. Preserve immutable-release
+verification afterward as a separate gate. Workflow preparation does not prove
+provenance exists; keep activation approval and actual verification explicit.
