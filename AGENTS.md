@@ -50,3 +50,12 @@ scope. Preserve settings, unrelated work and published release assets. Report
 build, publication, installation, activation and directory review as separate
 outcomes; leave unrun gates pending. The release guide explains owner account
 steps and users' manual Community plugin update process.
+
+Shared release automation follows `docs/RELEASE-CONTRACT.md`. Viewgram is its
+canonical source; update the identical Mica snapshot and full upstream commit
+pin together. Run `npm run test:release` and `npm run release:parity` for release
+tooling changes. `npm run release:qualify` composes the existing product gates;
+it does not replace authenticated Community reports. Keep the only hosted
+trigger manual `workflow_dispatch`, default publication false, and no general
+main/PR/tag/scheduled CI. Changing source does not authorize enabling hosted
+runs, changing release protections or editing immutable assets.

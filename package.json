@@ -14,7 +14,10 @@
     "check": "npm run typecheck && npm test && npm run test:taxonomy && npm run build && npm run test:browser",
     "test:taxonomy": "node scripts/check-taxonomy.mjs",
     "lint:obsidian": "eslint --config eslint.obsidian.config.mjs src demo && npm run lint:review-css",
-    "lint:review-css": "node scripts/check-review-css.mjs"
+    "lint:review-css": "node scripts/check-review-css.mjs",
+    "test:release": "node --test tests/release-contract.test.mjs",
+    "release:parity": "node scripts/release.mjs parity --upstream",
+    "release:qualify": "npm run check && npm run lint:obsidian && npm run test:release"
   },
   "devDependencies": {
     "@codemirror/commands": "6.8.1",
