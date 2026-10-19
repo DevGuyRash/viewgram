@@ -1,36 +1,27 @@
 ## Change
 
-Describe the problem and resulting behavior.
+Describe the problem, resulting behavior, and preserved essential capabilities.
 
-## Exact Community Review evidence
+## Automated validation
 
-- Full current `review` HEAD SHA:
-- **Review branch → Run preview scan** report link or retained evidence:
-- Scan completion time and result:
-- Official preview result and error count (required: pass, zero errors):
-- Warning count and disposition for each: fixed, or intentional necessity with
-  reviewed reason (do not suppress review rules):
-- Recommendations and optional capabilities/attestations still unverified:
+- Exact review HEAD and workflow link:
+- Source/CSS lint, build, unit/browser and release-contract results:
+- Actionable warnings resolved; necessary advisories and reasons:
+- Checks blocked or pending (do not claim they passed):
 
-- [ ] This PR is `review` → `main`, and the report covers its exact current head.
-- [ ] The official preview passed with zero errors. Every warning is fixed or
-      has an explicit reviewed reason for intentional necessity; none is
-      unreviewed. Any new commit requires a fresh preview on its full SHA before
-      merge, tagging or publication.
+## Optional Community evidence
 
-GitHub PR checks are separate from the Obsidian preview; identify each result
-by its actual source rather than assuming an Obsidian status check exists.
+- Latest applicable preview or full release review, exact SHA/version and date:
+- Actual errors, warnings and recommendations:
 
-## Local preflight and qualification
+A branch preview does not verify release assets. GitHub checks cover public
+rules; completed Community full release review establishes directory acceptance.
+Clipboard access and other essential capability recommendations do not justify
+removing functionality.
 
-- `npm run lint:obsidian` actual source-rule and CSS-tripwire results:
-- Warning dispositions: exact component/rule, fix or reviewed necessity; use
-  the component contracts in `RELEASING.md`, not a numeric baseline:
-- Other checks actually completed, and gates still pending:
+## Delivery
 
-## Promotion and delivery
-
-Preserve the scanned candidate's source and root manifest during merge. Content
-changes return through `review` and a fresh preview. After merge, follow
-[RELEASING.md](../RELEASING.md) for the exact `x.y.z` tag, three runtime assets,
-download/hash verification and separate installation/activation outcomes.
+New versions on main are published automatically after validation and exact
+build provenance. Keep all version metadata synchronized and never replace a
+published release. No manual report entry is required for future pushes.
+Installation, activation and native-device acceptance remain separate outcomes.

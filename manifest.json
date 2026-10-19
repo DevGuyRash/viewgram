@@ -1,1 +1,9 @@
-{"id":"viewgram","name":"Viewgram","version":"0.1.2","minAppVersion":"1.13.0","description":"Native-scale zoom, drag panning and independent fit-to-view lightboxes for rendered Mermaid diagrams.","author":"DevGuyRash","isDesktopOnly":false}
+{
+  "id": "viewgram",
+  "name": "Viewgram",
+  "version": "0.1.3",
+  "minAppVersion": "1.13.0",
+  "description": "Native-scale zoom, drag panning and independent fit-to-view lightboxes for rendered Mermaid diagrams.",
+  "author": "DevGuyRash",
+  "isDesktopOnly": false
+}

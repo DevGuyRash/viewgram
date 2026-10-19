@@ -1,61 +1,41 @@
 # Releasing Viewgram
 
-## How updates reach users
+## Automatic updates on push
 
-A plugin update is delivered through a published GitHub Release in
-[DevGuyRash/viewgram](https://github.com/DevGuyRash/viewgram). Ordinary source
-pushes, local builds and GitHub workflow artifacts do not publish a plugin
-update. The shared [release contract](docs/RELEASE-CONTRACT.md) automates
-qualification, draft publication and verification after a manual release
-dispatch. It defaults to a dry run. Main pushes, PRs, tags and schedules do not
-start hosted jobs. Source changes alone do not enable Actions or publish.
+Pushes to `review` and `main` run the shared validation workflow. A new version
+on main automatically publishes after product validation and exact-asset build
+provenance verification. Repeated pushes of an already-published version with
+identical asset hashes skip publication; changed assets require a version bump.
+The optional manual dispatch defaults to a dry run. See the
+[shared release contract](docs/RELEASE-CONTRACT.md) for permissions and recovery.
 
-Obsidian needs the initial Community directory submission only. Subsequent
-versions use new GitHub Releases. Installed community plugins do not update
-automatically: users choose **Settings → Community plugins → Check for
-updates**, then **Update** or **Update all**.
+Obsidian requires the initial directory submission once and periodically checks
+subsequent GitHub releases. Its completed full release review establishes
+acceptance. A source preview remains useful optional feedback, not a required
+manual step on every push. Never present local or hosted validation as an
+actual Community review. Users choose **Settings → Community plugins → Check
+for updates**, then **Update** or **Update all** to install updates.
 
-## Review branch and promotion gate
+## Review and promotion
 
-1. Commit and push all new work to the permanent lowercase `review` branch
-   first. Isolated work branches may integrate there. Preserve existing work
-   and history; branch setup is not permission to reset or discard them.
-2. Run `npm run lint:obsidian` within the authorized scope and record its actual
-   source-rule and local CSS-tripwire results. Errors must be zero. Keep other
-   warnings visible; fix each or document its reviewed necessity without
-   suppressing rules. This preflight does not establish full CSS compatibility
-   or an official preview pass.
-3. On the Obsidian Community entry, select **Review branch**, enter the full
-   current `review` HEAD commit SHA, then select **Run preview scan**. The
-   official control accepts any branch, tag, or SHA; `review` is this
-   repository's permanent branch convention. Use the SHA so the evidence is
-   fixed to one candidate.
-4. Obtain an actual passing preview with zero errors before opening the
-   `review` → `main` PR. Fix every warning or document its intentional necessity
-   with a reviewed reason; unreviewed warnings block promotion. Record the SHA,
-   report evidence, warning dispositions, and remaining recommendations or
-   unverified optional capabilities/attestations in the PR template. Official
-   warnings are advisory; this repository requires their reviewed disposition
-   before merge. Recommendations remain separately reported outcomes.
-5. Any change to `review` HEAD invalidates its earlier pass. Stop and rerun the
-   preview on the new full SHA before opening or merging the PR, tagging, or
-   publishing. GitHub PR checks are separate evidence; they do not automatically
-   represent the Obsidian preview, and no named GitHub status is assumed.
-6. After the clean preview, merge the PR into `main` and record the resulting
-   main commit. The release source and root manifest must match the scanned
-   candidate. Resolve any merge content changes through `review` and a fresh
-   preview. Create the version tag and public release only after merge and the
-   release gates below.
-
-The owner handles Community access and account authorization as described
-below. An unavailable scan or missing report leaves this gate pending; do not
-infer a pass from local checks, a source push, or an earlier candidate.
+1. Commit and push new work to permanent lowercase `review`, preserving history.
+2. Require the product validation workflow and resolve actionable warnings.
+   Document necessary advisories, including essential clipboard capability.
+3. Inspect the latest applicable Community report when available; record its
+   exact version/SHA and distinguish preview from published-release results.
+4. Merge the reviewed candidate into main. Its synchronized manifest version
+   determines publication. No automatic version-writeback commits are created.
+5. Inspect the resulting GitHub run, release hashes/provenance, and completed
+   Community full release review. Unrun or unavailable gates remain pending.
 
 ## Local preflight boundaries
 
 `npm run lint:obsidian` runs the official recommended TypeScript rules over
 `src` and `demo`, with native DOM creation and development imports promoted to
-errors in plugin source, then `npm run lint:review-css`.
+errors in plugin source, then `npm run lint:review-css` and the pinned official scanner CSS rules via
+`npm run lint:scanner-css`. The CSS scanner configuration is copied unchanged
+from official obsidianmd/obsidian-workflows commit
+`8167caed39664214d82c86fdfa32e06d8d55f61d`; it is checked with locked dev dependencies.
 The dependency-free CSS tripwires report source locations for priority
 overrides, `:has()` and the previously rejected decoration longhands, ignoring
 comments and quoted values. They cover the two shipping source stylesheets;
@@ -86,8 +66,8 @@ and held animation rates and listeners are released on teardown.
 
 Keep other warnings visible and review each actual component. No warning count
 is an accepted baseline. The preflight does not establish reproducible builds,
-optional attestations or an official preview pass. Rerun the exact-SHA preview
-after every source change, including changes made to remove advisory warnings.
+attestations or an official preview pass. If using an optional preview as
+evidence, any later source change makes that earlier report stale.
 
 ## Prepare one candidate
 
@@ -107,7 +87,7 @@ after every source change, including changes made to remove advisory warnings.
    runtime files for unintended private data. Commit only the intended source
    and release metadata through the normal repository Git route. The public
    `main` branch must contain the matching root manifest and source after the
-   clean-preview PR is merged. A changed candidate needs fresh preview evidence;
+   reviewed PR is merged. A changed candidate needs fresh automated validation;
    record unrun gates as pending.
 
 `npm version` alone is not this release procedure: this package has no version
@@ -116,57 +96,36 @@ a tag before the candidate is ready.
 
 ## Publish and verify
 
-The matching workflow and publisher are maintained canonically here and copied
-to Mica at a pinned commit. `npm run test:release` tests the protocol with a fake
-host; `npm run release:parity` checks the bundle hashes. `npm run release:qualify`
-runs the existing product check/build/browser suite, Obsidian preflight and
-release tests. These commands do not assert a Community preview or release pass.
-Follow the shared contract's first-run settings checks and exact-SHA dispatch
-instructions. Publication requires the existing gates below. The already
-published immutable `0.1.2` is never republished or modified; its previously
-observed GitHub/Obsidian attestation disagreement remains a separate diagnosis
-until a fresh authenticated full review establishes otherwise.
+`npm run release:validate` runs existing product check/build/browser tests,
+Obsidian source/CSS preflight and release-contract tests. `release:qualify` is an
+alias for Viewgram. `npm run release:parity` checks the canonical bundle hashes.
+The shared contract defines the automatic main workflow and isolated exact-asset
+attestation/publication jobs. Verify immutable release settings before the first
+publication; no new credential is needed.
 
-After merging the clean-preview candidate into `main`, verify the merged
-source tree and root manifest match the scanned, qualified candidate and confirm
-its recorded attachment hashes. Those exact qualified attachments may supply the
-release; a merge commit with the same tree does not require another build.
-Changed release inputs return through `review`, fresh preview and qualification.
-Publish a GitHub Release with a tag exactly equal to `manifest.json`'s `x.y.z`
-version, without a `v` prefix.
-Attach only these three non-empty files, using these exact attachment names:
+The three release attachments come from the one qualified build:
 
 - `dist/main.js` → `main.js`
 - `dist/manifest.json` → `manifest.json`
 - `dist/styles.css` → `styles.css`
 
-The built manifest must equal the root manifest. Demo bundles, fixtures,
-settings, private evidence and development dependencies are not release assets.
-Record the candidate commit and SHA-256 of each asset. After publication,
-download all three attachments again and compare their bytes/hashes with the
-candidate; verify the tag target and public release access. Preserve published
-releases. A correction gets a new version and release rather than replacing
-assets under an existing tag.
+The built manifest must equal the root manifest. Demo files, private evidence,
+settings and dependencies are not release assets. The immutable tag equals the
+unprefixed manifest version. Already-published `0.1.2` is never changed; the new
+workflow candidate uses `0.1.3`. Historical review results do not describe a
+new candidate or its future release.
 
-An exact branch preview does not verify the future release's attachments or
-attestations. Verify the published release and each downloaded asset with the
-supported `gh release verify` and `gh release verify-asset` commands and retain
-the actual reports. GitHub's immutable `release/v0.2` attestations bind the tag,
-commit and asset digests; they do not establish SLSA workflow build provenance.
-Keep any unverified build-provenance claim explicit.
+The workflow verifies genuine SLSA build provenance for all three exact files,
+then creates a draft, checks its hashes and publishes. It verifies immutable
+release provenance and re-downloads/hashes every attachment. These are separate
+from Obsidian's completed full release review. A missing or conflicting report
+is pending diagnosis, never a fabricated pass.
 
-Before installation or activation, require the published version's completed
-Obsidian full release review with zero errors and every warning fixed or given a
-reviewed necessity. A branch preview or GitHub verification alone does not clear
-this gate. If GitHub and Obsidian disagree, preserve both reports, protections
-and published assets; stop affected delivery pending diagnosis. Never fabricate
-provenance or weaken checks to force agreement.
-
-Publishing does not install or enable the plugin in a vault. After those release
-checks pass, install the verified files using the README procedure, preserve
-`data.json`, and confirm that Obsidian actually loads the new version. Preserve
-the confirmed legacy namespace and unrelated plugins as described in
-[placement](docs/PLACEMENT.md).
+Before installation or activation, require a completed full Community release
+review with no errors and dispositions for warnings, plus the verified release
+assets. Preserve `data.json`, the legacy namespace and unrelated plugins as
+specified in [placement](docs/PLACEMENT.md). Confirm the loaded version;
+publication alone does not install or enable the plugin in a vault.
 
 ## Directory review and owner steps
 
@@ -192,4 +151,4 @@ Future releases also require the shared [build-provenance gate](docs/RELEASE-CON
 attest the three exact qualified assets and verify repository, source commit,
 signing workflow and hashes before publication. Preserve immutable-release
 verification afterward as a separate gate. Workflow preparation does not prove
-provenance exists; keep activation approval and actual verification explicit.
+provenance exists; keep actual verification and directory acceptance explicit.

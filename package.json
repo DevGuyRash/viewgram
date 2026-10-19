@@ -1,6 +1,6 @@
 {
   "name": "viewgram",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -13,11 +13,13 @@
     "test:browser": "playwright test",
     "check": "npm run typecheck && npm test && npm run test:taxonomy && npm run build && npm run test:browser",
     "test:taxonomy": "node scripts/check-taxonomy.mjs",
-    "lint:obsidian": "eslint --config eslint.obsidian.config.mjs src demo && npm run lint:review-css",
+    "lint:obsidian": "eslint --config eslint.obsidian.config.mjs src --max-warnings 0 && eslint --config eslint.obsidian.config.mjs demo && npm run lint:review-css && npm run lint:scanner-css",
     "lint:review-css": "node scripts/check-review-css.mjs",
     "test:release": "node --test tests/release-contract.test.mjs",
     "release:parity": "node scripts/release.mjs parity --upstream",
-    "release:qualify": "npm run check && npm run lint:obsidian && npm run test:release"
+    "release:qualify": "npm run release:validate",
+    "release:validate": "npm run check && npm run lint:obsidian && npm run test:release",
+    "lint:scanner-css": "stylelint --config stylelint.obsidian-scanner.json \"src/**/*.css\""
   },
   "devDependencies": {
     "@codemirror/commands": "6.8.1",
@@ -35,6 +37,8 @@
     "happy-dom": "20.14.5",
     "mermaid": "11.17.2",
     "obsidian": "1.13.1",
+    "stylelint": "17.6.0",
+    "stylelint-no-unsupported-browser-features": "8.1.1",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
     "typescript-eslint": "8.65.0"
