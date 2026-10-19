@@ -50,7 +50,7 @@ test('primary Fit chart contains every native SVG boundary after native zoom and
 });
 
 test('bottom-right grip changes the outer chart, footer, and viewport together under host sizing rules', async ({ page }) => {
-  await page.addStyleTag({ content: '#outer-frame-probe .kmv-viewer { height:350px; min-height:200px; flex:1 0 90%; } #outer-frame-probe .kmv-viewport { height:300px; min-height:150px; flex:1 0 auto; }' });
+  await page.addStyleTag({ content: '.markdown-preview-section section { height:350px; min-height:200px; flex:1 0 90%; } .markdown-preview-section .kmv-viewport { height:300px; min-height:150px; flex:1 0 auto; }' });
   const root = await mountResizeProbe(page), grip = root.getByRole('button', { name: 'Resize diagram height', exact: true });
   await grip.scrollIntoViewIfNeeded(); const before = await frame(root);
   await dragHeight(page, grip, 90);
@@ -59,11 +59,18 @@ test('bottom-right grip changes the outer chart, footer, and viewport together u
   expect(after.viewportHeight - before.viewportHeight).toBeCloseTo(growth, 0);
   expect(after.footerTop - before.footerTop).toBeCloseTo(growth, 0);
   expect(after.gripTop - before.gripTop).toBeCloseTo(growth, 0);
-  expect(after.gripBottom).toBeCloseTo(before.gripBottom, 0); expect(after.priority).toBe('important');
+  expect(after.gripBottom).toBeCloseTo(before.gripBottom, 0); expect(after.priority).toBe(''); expect(after.preferredHeight).toBe('');
   await grip.press('ArrowUp'); await expect.poll(async () => (await frame(root)).outerHeight).toBeLessThan(after.outerHeight - 30);
   await grip.press('Home'); await expect.poll(async () => (await frame(root)).outerHeight).toBeCloseTo(before.outerHeight, 0);
   await dragHeight(page, grip, 80); await grip.dblclick(); await expect.poll(async () => (await frame(root)).outerHeight).toBeCloseTo(before.outerHeight, 0);
   await test.info().attach('outer-frame-resize', { body: JSON.stringify({ before, after, growth }, null, 2), contentType: 'application/json' });
+});
+
+test('explicit owner sizing overrides retain ordinary cascade priority', async ({ page }) => {
+  await page.addStyleTag({ content: '#outer-frame-probe .kmv-viewer { height:350px; }' });
+  const root = await mountResizeProbe(page);
+  await expect(root).toHaveCSS('height', '350px');
+  expect((await frame(root)).priority).toBe('');
 });
 
 test('background preferences update existing, future, and lightbox viewers without changing manual zoom', async ({ page }) => {

@@ -77,7 +77,8 @@ export class ViewportController {
     this.root = element(doc, 'section', 'kmv-viewer');
     this.root.setAttribute('aria-label', options.label || 'Mermaid diagram viewer');
     this.root.setAttribute('contenteditable', 'false');
-    this.viewport = element(doc, 'div', 'kmv-viewport');
+    // Semantic scroll regions avoid host rules that force all Markdown divs to overflow visibly.
+    this.viewport = element(doc, 'section', 'kmv-viewport');
     this.viewport.tabIndex = 0;
     this.viewport.setAttribute('role', 'region');
     this.viewport.setAttribute('aria-label', 'Diagram');
@@ -107,10 +108,10 @@ export class ViewportController {
       edit.replaceChildren(controlIcon(doc, 'edit'), element(doc, 'span', 'kmv-control-label', 'Edit chart'));
       actions.append(edit);
     }
-    const actionStatus = this.actionStatus = element(doc, 'div', 'kmv-action-status'); actionStatus.setAttribute('role', 'status'); actionStatus.setAttribute('aria-live', 'polite');
+    const actionStatus = this.actionStatus = element(doc, 'section', 'kmv-action-status'); actionStatus.setAttribute('role', 'status'); actionStatus.setAttribute('aria-live', 'polite');
     if (options.actions?.length) {
       const menu = element(doc, 'div', 'kmv-tools');
-      const choices = element(doc, 'div', 'kmv-tool-menu');
+      const choices = element(doc, 'section', 'kmv-tool-menu');
       choices.hidden = true; choices.setAttribute('role', 'group'); choices.setAttribute('aria-label', 'Source and export actions');
       const setMenuOpen = (open: boolean): void => { this.constrainMenus(); choices.hidden = !open; summary.setAttribute('aria-expanded', String(open)); };
       const summary = this.button('Source & export', 'Source & export', () => { this.closePresets(); setMenuOpen(choices.hidden); });
@@ -159,7 +160,7 @@ export class ViewportController {
     this.zoomInput.setAttribute('title', 'Enter 1–1000%, or a multiplier such as 1.5x');
     this.zoomInput.spellcheck = false;
     const zoomPicker = element(doc, 'div', 'kmv-zoom-picker');
-    this.zoomMenu = element(doc, 'div', 'kmv-zoom-menu');
+    this.zoomMenu = element(doc, 'section', 'kmv-zoom-menu');
     this.zoomMenu.hidden = true;
     this.zoomMenu.setAttribute('role', 'group');
     this.zoomMenu.setAttribute('aria-label', 'Zoom presets');

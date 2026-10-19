@@ -1,67 +1,44 @@
 # Viewgram agent instructions
 
-Commit and push all new work to the permanent lowercase `review` branch first.
-Isolated work branches may integrate there; preserve existing work and history.
+Commit and push new work to permanent lowercase `review` first; preserve
+existing work and history. Review/main pushes validate automatically. A new,
+synchronized version on main publishes automatically only after validation and
+exact-asset build provenance pass. The owner's current on-push instruction
+supersedes the earlier manual-only workflow and mandatory per-push portal-preview
+policy. Do not add recurring manual approval or report-entry steps.
 
-Before opening a `review` → `main` PR, use the entry's Obsidian Community
-**Review branch** → **Run preview scan** with the full current `review` HEAD SHA.
-Record that SHA and the actual passing report in the PR template. Require zero
-errors; fix every warning or document its intentional necessity with a reviewed
-reason. Unreviewed warnings block promotion. Any change to `review` HEAD
-invalidates its earlier pass; stop before PR creation, main merge, tagging or
-publication until the new SHA passes and its warnings are resolved. Keep
-recommendations and unverified optional capabilities/attestations explicit.
-GitHub PR checks and local lint are separate evidence; neither is an Obsidian
-preview result, and no Obsidian GitHub status name is assumed.
+Follow RELEASING.md and docs/RELEASE-CONTRACT.md. Keep plugin ID stable. Preserve
+settings, clipboard, source editing, diagram export and other essential features.
+Fix actionable warnings/errors; keep intentional advisories explicit. Do not
+remove a capability just to silence a scanner recommendation.
 
-Run `npm run lint:obsidian` within the user's authorized scope. It combines the
-official source rules over `src` and `demo` with the local CSS tripwires. Keep
-shipping plugin code under `src`; native DOM creation and development imports
-are errors there, and the build checks its resolved input graph. The standalone
-browser adapter is a development ESM module, locally checked with its native
-DOM necessity explained in `RELEASING.md`. Check official scan scope when adding
-source paths; development directory names alone do not imply exclusion. Keep
-other warnings visible and review them without suppressing rules. Do not
-introduce stylesheet priority overrides, `:has()`, or
-the rejected decoration longhands. Use owned state classes and CSS variables.
-The CSS tripwires cover those patterns only; they do not establish complete CSS
-compatibility, reproducible builds, attestations, or an official preview pass.
+Run the direct official source rules, pinned scanner CSS rules and local CSS
+tripwires with `npm run lint:obsidian`. Keep shipping plugin code under `src`.
+Native DOM creation and development imports are errors there, and the build
+checks its resolved graph. The standalone browser adapter's two local native-DOM
+advisories are documented necessity. Do not suppress rules, add priority
+overrides, `:has()`, or rejected decoration longhands. Use owned state classes
+and CSS variables.
 
-When preparing a plugin update, follow [RELEASING.md](RELEASING.md). Keep the
-plugin ID stable and synchronize the package, lockfile, manifest and
-`versions.json` metadata in the scanned candidate. Merge the reviewed candidate
-into `main` before tagging or publishing; its release source and root manifest
-must match the scanned candidate. Content changes return through `review` and
-a fresh preview. Delivery requires a GitHub Release with the exact unprefixed
-`x.y.z` version tag and matching `main.js`, `manifest.json` and `styles.css`
-attachments, followed by download/hash verification.
+`npm run release:validate` covers product checks/build/browser tests, direct
+lint and release tests. Record blocked checks accurately; neither local nor
+hosted checks guarantee Community directory acceptance. Optional exact-SHA
+branch previews and full release reviews are different evidence. Use the latest
+applicable report, not a historical release failure to describe current source.
 
-An exact branch preview does not verify future release assets or attestations.
-Before installation or activation, verify the release and each downloaded asset
-with supported `gh release` verification, then require a completed Obsidian full
-release review with zero errors and reviewed warning dispositions. Immutable
-`release/v0.2` attestations bind the tag, commit and assets; SLSA workflow build
-provenance remains separate evidence. Preserve protections, published assets and
-both reports. If GitHub and Obsidian disagree, stop affected delivery pending
-diagnosis; never fabricate provenance or weaken checks.
+Synchronize package, lockfile, manifest and versions.json for a new release.
+Merge reviewed source to main before automated publication. Published assets
+are immutable: never overwrite, delete or retag. Repeat pushes with matching
+published bytes skip publication; changed bytes need a new version.
 
-Use the existing build and verification commands within the user's authorized
-scope. Preserve settings, unrelated work and published release assets. Report
-build, publication, installation, activation and directory review as separate
-outcomes; leave unrun gates pending. The release guide explains owner account
-steps and users' manual Community plugin update process.
+Shared automation is canonical here. Copy the identical release bundle and
+hash manifest to Mica and update its full upstream commit pin together. Run
+`npm run test:release` and `npm run release:parity` for tooling changes. Preserve
+isolated build, attestation and publication permissions; new persistent access
+still requires the owner's confirmation.
 
-Shared release automation follows `docs/RELEASE-CONTRACT.md`. Viewgram is its
-canonical source; update the identical Mica snapshot and full upstream commit
-pin together. Run `npm run test:release` and `npm run release:parity` for release
-tooling changes. `npm run release:qualify` composes the existing product gates;
-it does not replace authenticated Community reports. Keep the only hosted
-trigger manual `workflow_dispatch`, default publication false, and no general
-main/PR/tag/scheduled CI. Changing source does not authorize enabling hosted
-runs, changing release protections or editing immutable assets.
-
-Future releases also require the shared [build-provenance gate](docs/RELEASE-CONTRACT.md):
-attest the three exact qualified assets and verify repository, source commit,
-signing workflow and hashes before publication. Preserve immutable-release
-verification afterward as a separate gate. Workflow preparation does not prove
-provenance exists; keep activation approval and actual verification explicit.
+Before installing or activating, require exact downloaded-asset hash checks,
+GitHub build/release verification and a completed full Community release review.
+Keep publication, installation, activation, native-device and directory review
+outcomes separate. Preserve any conflicting reports and diagnose them without
+fabricating provenance or weakening checks.
