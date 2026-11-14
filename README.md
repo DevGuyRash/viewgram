@@ -60,9 +60,11 @@ Source checkout belongs outside a vault, for example `~/repos/viewgram`. Install
 
 ## Releases and updates
 
-Maintainers follow [RELEASING.md](RELEASING.md) to synchronize versions, build,
-publish the matching GitHub Release and verify its downloaded runtime files.
-Source pushes do not publish updates automatically. Obsidian users choose
+Pushes to `review` and `main` validate automatically. A new, synchronized version
+on `main` publishes automatically only after validation and exact-asset build
+provenance verification. Maintainers follow [RELEASING.md](RELEASING.md) for
+release preparation, promotion and downloaded-asset verification. The optional
+manual workflow dispatch defaults to a dry run. Obsidian users choose
 **Community plugins → Check for updates → Update** or **Update all**; later
 releases do not require another initial directory submission.
 
